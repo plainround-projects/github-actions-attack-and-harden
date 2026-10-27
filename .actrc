@@ -1,3 +1,4 @@
 -P ubuntu-latest=plainround-act-runner:ubuntu-24.04
 --pull=false
 --container-architecture linux/arm64
+--container-daemon-socket -

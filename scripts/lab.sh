@@ -19,11 +19,19 @@ checkout_stub="$root/exploit/stubs/fork-checkout"
 fake_secret="DEPLOY_TOKEN=demo-not-a-real-secret"
 pinned_checkout="$(grep -o 'actions/checkout@[0-9a-f]\{40\}' .github/workflows/pr-build.yml | head -1)"
 
+# act's cache and artifact servers must be reachable from the runner container, which on Docker Desktop is inside a VM:
+# bind them to the Mac's LAN address.
+act_flags=(--concurrent-jobs 1 --artifact-server-port 38569)
+host_ip="$(ipconfig getifaddr en0 2>/dev/null || true)"
+if [[ -n "$host_ip" ]]; then
+  act_flags+=(--cache-server-addr "$host_ip" --artifact-server-addr "$host_ip")
+fi
+
 # run LOG ACT_ARGS...: run act, keep its output in LOG, show it only if act itself fails.
 run() {
   local log="$1"
   shift
-  if ! act "$@" >"$log" 2>&1; then
+  if ! act "${act_flags[@]}" "$@" >"$log" 2>&1; then
     cat "$log"
     exit 1
   fi
