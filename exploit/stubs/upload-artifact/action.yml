@@ -1,0 +1,47 @@
+# Stand-in for actions/upload-artifact when the workflow runs under act on a Mac.
+#
+# The real action talks to GitHub's artifact service, which act can only imitate with a server on the host that the
+# runner container cannot reach when Docker runs in a VM. This stand-in does what can be checked locally: it lists the
+# files that would be uploaded with their sizes and the retention, and fails when a file is missing and
+# if-no-files-found is "error". On GitHub the real action runs; scripts/act-matrix.sh maps this stand-in over it with
+# act's --local-repository.
+name: upload-artifact (act stand-in)
+description: List what actions/upload-artifact would upload, and fail on a missing file when asked to.
+inputs:
+  name:
+    description: Artifact name.
+    required: true
+  path:
+    description: Files to upload, one per line.
+    required: true
+  retention-days:
+    description: Retention in days.
+    required: false
+    default: ""
+  if-no-files-found:
+    description: warn, error or ignore.
+    required: false
+    default: warn
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        ARTIFACT_NAME: ${{ inputs.name }}
+        ARTIFACT_PATHS: ${{ inputs.path }}
+        ARTIFACT_RETENTION: ${{ inputs.retention-days }}
+        ARTIFACT_IF_MISSING: ${{ inputs.if-no-files-found }}
+      run: |
+        missing=0
+        while IFS= read -r file; do
+          [ -n "$file" ] || continue
+          if [ -e "$file" ]; then
+            echo "artifact ${ARTIFACT_NAME}: ${file} ($(wc -c < "$file" | tr -d ' ') bytes), expires in ${ARTIFACT_RETENTION:-90} days"
+          else
+            echo "artifact ${ARTIFACT_NAME}: ${file} is missing"
+            missing=1
+          fi
+        done <<< "$ARTIFACT_PATHS"
+        if [ "$missing" = 1 ] && [ "$ARTIFACT_IF_MISSING" = error ]; then
+          exit 1
+        fi

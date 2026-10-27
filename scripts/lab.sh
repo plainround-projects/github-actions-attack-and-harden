@@ -8,24 +8,27 @@
 #   fix 2     the hardened pr-build.yml (pull_request) runs the same fork code with no secret in scope
 #
 # Attacks 3 and 5 need GitHub (the repository's token default, an OIDC token and a cloud account); see README.md.
+#
+# How the fork is simulated: the fork's pull request is a copy of the repository in build/lab/ whose `build` script was
+# replaced by exploit/fork/apply-fork-change.mjs, and act is pointed at that copy (the hardened workflow's checkout is
+# skipped by act, which copies the working directory instead; the vulnerable workflow's checkout sets `ref:`, so a
+# stand-in step replaces it and the copy is bound as the workspace). The workflows under test are unchanged.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root"
 logs="$root/build/lab"
+rm -rf "$logs"
 mkdir -p "$logs"
-checkout_stub="$root/exploit/stubs/fork-checkout"
 # The lesson's fake secret. It is not a credential; it exists so the vulnerable job has something in scope.
 fake_secret="DEPLOY_TOKEN=demo-not-a-real-secret"
-pinned_checkout="$(grep -o 'actions/checkout@[0-9a-f]\{40\}' .github/workflows/pr-build.yml | head -1)"
-
-# act's cache and artifact servers must be reachable from the runner container, which on Docker Desktop is inside a VM:
-# bind them to the Mac's LAN address.
-act_flags=(--concurrent-jobs 1 --artifact-server-port 38569)
-host_ip="$(ipconfig getifaddr en0 2>/dev/null || true)"
-if [[ -n "$host_ip" ]]; then
-  act_flags+=(--cache-server-addr "$host_ip" --artifact-server-addr "$host_ip")
-fi
+# act's artifact service cannot be reached from a runner container when Docker runs in a VM, so the pinned
+# upload-artifact action of the hardened workflow is replaced by a stand-in that lists the files (exploit/stubs).
+pinned_upload="$(grep -o 'actions/upload-artifact@[0-9a-f]\{40\}' .github/workflows/pr-build.yml | head -1)"
+upload_stub="$root/exploit/stubs/upload-artifact"
+# The vulnerable workflow's checkout sets `ref:`, which act does not skip; the stand-in replaces it (exploit/stubs).
+checkout_stub="$root/exploit/stubs/fork-checkout"
+act_flags=(--concurrent-jobs 1)
 
 # run LOG ACT_ARGS...: run act, keep its output in LOG, show it only if act itself fails.
 run() {
@@ -68,17 +71,24 @@ grep -E "\| New issue" "$logs/fix1.log" | sed 's/^/   /'
 expect_none "$logs/fix1.log" '\| INJECTED-COMMAND-RAN$' "the title printed as text and no command ran"
 
 echo "== attack 2: a fork's code under pull_request_target with the secret in scope (vulnerable pr-build.yml)"
-run "$logs/attack2.log" pull_request_target -C exploit/vulnerable -W .github/workflows/pr-build.yml \
+mkdir -p "$logs/fork-vulnerable"
+cp -R exploit/vulnerable/. "$logs/fork-vulnerable/"
+node exploit/fork/apply-fork-change.mjs "$logs/fork-vulnerable/package.json"
+run "$logs/attack2.log" pull_request_target -b -C "$logs/fork-vulnerable" -W .github/workflows/pr-build.yml \
   -e "$root/exploit/events/pull-request-from-fork.json" --local-repository "actions/checkout@v4=$checkout_stub" -s "$fake_secret"
-grep -E "FORK CODE RAN" "$logs/attack2.log" | sed 's/^/   /'
-expect "$logs/attack2.log" 'FORK CODE RAN: event=pull_request_target deploy-token-in-environment=true' \
+grep -E "\| FORK CODE RAN" "$logs/attack2.log" | sed 's/^/   /'
+expect "$logs/attack2.log" '\| FORK CODE RAN: event=pull_request_target deploy-token-in-environment=true$' \
   "the fork's build script ran with DEPLOY_TOKEN in its environment"
 
 echo "== fix 2: the same fork code under pull_request, no secret (hardened pr-build.yml)"
-run "$logs/fix2.log" pull_request -W .github/workflows/pr-build.yml -e "$root/exploit/events/pull-request-from-fork.json" \
-  --local-repository "$pinned_checkout=$checkout_stub" --artifact-server-path "$logs/artifacts"
-grep -E "FORK CODE RAN" "$logs/fix2.log" | sed 's/^/   /'
-expect "$logs/fix2.log" 'FORK CODE RAN: event=pull_request deploy-token-in-environment=false' \
+mkdir -p "$logs/fork-hardened"
+git ls-files -z | xargs -0 -I{} rsync -aR "{}" "$logs/fork-hardened/"
+node exploit/fork/apply-fork-change.mjs "$logs/fork-hardened/package.json"
+run "$logs/fix2.log" pull_request -C "$logs/fork-hardened" -W .github/workflows/pr-build.yml \
+  -e "$root/exploit/events/pull-request-from-fork.json" --local-repository "$pinned_upload=$upload_stub"
+grep -E "\| (FORK CODE RAN|artifact build-result)" "$logs/fix2.log" | sed 's/^/   /'
+expect "$logs/fix2.log" '\| FORK CODE RAN: event=pull_request deploy-token-in-environment=false$' \
   "the fork's code still got built, with no secret anywhere in its environment"
+expect "$logs/fix2.log" '\| artifact build-result: result.json' "the result file was recorded for pr-report"
 
 echo "lab: every attack worked on the vulnerable workflow and every fix held"
