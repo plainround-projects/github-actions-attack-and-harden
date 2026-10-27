@@ -1,0 +1,12 @@
+workflows:
+  - changed-files:
+      - any-glob-to-any-file: [".github/workflows/**", ".github/actions/**"]
+infra:
+  - changed-files:
+      - any-glob-to-any-file: ["infra/**"]
+app:
+  - changed-files:
+      - any-glob-to-any-file: ["src/**", "pipeline/**", "tests/**"]
+docs:
+  - changed-files:
+      - any-glob-to-any-file: ["docs/**", "**/*.md"]

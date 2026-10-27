@@ -1,0 +1,42 @@
+name: deploy
+
+# Fix 5. No cloud key is stored anywhere. The job asks GitHub for an OIDC token, the cloud checks it against a trust
+# policy that names this repository and the `production` environment, and hands back credentials that expire. The
+# environment's required reviewers must approve before the job starts, so before any token exists.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    permissions:
+      id-token: write # lets the job request an OIDC token
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Upload the build
+        env:
+          BUCKET: ${{ vars.DEPLOY_BUCKET }}
+        run: aws s3 sync dist "s3://${BUCKET}/releases/${GITHUB_SHA}/" --no-progress

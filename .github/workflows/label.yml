@@ -1,0 +1,22 @@
+name: label
+
+# Fix 4 for attack 2 and fix 3 for attack 3. `pull_request_target` is kept for the one job that must act on the base
+# repository, adding a label, and it never checks out the pull request's code: the labeler reads the changed file
+# names through the API. The token has exactly the two scopes that job needs.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions: {}
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read # the labeler reads .github/labeler.yml from the base branch through the API
+      pull-requests: write # and adds the labels
+    steps:
+      - uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0
+        with:
+          sync-labels: true
