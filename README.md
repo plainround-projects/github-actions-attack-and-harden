@@ -182,6 +182,13 @@ The dependency rule is enforced by `make lint` (ESLint `no-restricted-imports` p
 - **`terraform init` downloads the AWS provider every time:** `make up` creates `~/.terraform.d/plugin-cache`; export `TF_PLUGIN_CACHE_DIR` to use it from other shells.
 - **`make lint` complains about a workflow you changed:** read the `harden-lint` line; the fix is the same as in the checklist (environment variable, explicit permissions, a pinned SHA).
 
+## Verification status (2026-10-27)
+
+- Passed on this machine, from a fresh clone: `make check` (lint, eslint, prettier, tsc, actionlint, harden-lint, terraform fmt/validate/test, offline plan, check-trust; 90 tests passed, coverage 99%).
+- Passed with `act` in Docker, on a laptop whose load average was in the dozens (the long pytest durations in the outputs above come from that): `make run` (exit 0: attacks 1 and 2 worked on the vulnerable workflows and both fixes held).
+- Pending capacity: the runner image was built from this `ci/act-runner/Dockerfile` (the build client reported a deadline error after the layers were done, but the tagged image was present and was the one used), and `make up` was not re-run from a fresh clone. After Docker Desktop is restarted with free disk (Docker.raw was at its 60 GiB cap on 2026-10-28), run `make up` and then `make run`.
+- Could not run anywhere here, only on GitHub: the default-token attack, the labeler, the report workflow, the approval gate and a real STS refusal (see docs/runbook.md; nothing in it was run), `scripts/github-settings.sh` and `scripts/set-variables.sh` (dry run only).
+
 ## Author and license
 
 Written by Sumit Srivastava. Released under the MIT License, see [LICENSE](LICENSE). Changes are in [CHANGELOG.md](CHANGELOG.md).
