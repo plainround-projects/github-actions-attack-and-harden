@@ -1,5 +1,5 @@
 # make help lists every target.   make up | run | test | lint | down
-ACT_IMAGE := plainround-act-runner:ubuntu-24.04
+ACT_IMAGE := gha-projects-act-runner:ubuntu-24.04
 TF_ENV := infra/environments/demo
 export TF_PLUGIN_CACHE_DIR ?= $(HOME)/.terraform.d/plugin-cache
 STAMP := node_modules/.installed

@@ -35,6 +35,11 @@ run() {
   local log="$1"
   shift
   if ! act "${act_flags[@]}" "$@" >"$log" 2>&1; then
+    # A busy Docker daemon can time out while act removes the job's volumes, after the job itself succeeded.
+    if grep -q "Job succeeded" "$log" && ! grep -q "Job failed" "$log"; then
+      echo "   (act reported a Docker cleanup error after the job succeeded; see $log)"
+      return 0
+    fi
     cat "$log"
     exit 1
   fi
