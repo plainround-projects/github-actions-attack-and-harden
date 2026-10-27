@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Install a pinned actionlint into ./.tools/bin and verify its SHA-256 before unpacking.
-# Usage: pipeline/install-actionlint.sh   (Linux amd64 or arm64; on a Mac use `brew install actionlint`)
+# Usage: scripts/install-actionlint.sh   (Linux amd64 or arm64; on a Mac use `brew install actionlint`)
 set -euo pipefail
 
 VERSION="1.7.12"
