@@ -81,6 +81,72 @@ const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f-\u009f]/g;
 
 The base rule `no-control-regex` complains about control characters inside a regular expression, which is exactly what this expression is for. The comment disables that one rule for the next line only and says why after `--`. It is the only suppression in the code.
 
+<!-- walk:eslint.config.js -->
+### `eslint.config.js`, line by line
+
+Lines 1 to 3:
+
+```js
+import js from "@eslint/js";
+import tseslint from "typescript-eslint";
+```
+
+The imports: `js` is the package `@eslint/js` (ESLint's own recommended rules) and `tseslint` is `typescript-eslint`.
+
+Lines 4 to 19:
+
+```js
+/** Folders of src/ and what each may import: domain imports nothing; application the domain; nothing imports interfaces. */
+const forbid = (layers) => ({
+  "no-restricted-imports": [
+    "error",
+    {
+      patterns: layers.map((layer) => ({
+        group: [`**/${layer}/**`, `**/${layer}.js`],
+        message: `This layer must not import from ${layer}.`,
+      })),
+    },
+  ],
+});
+
+export default tseslint.config(
+  { ignores: ["dist/", "build/", "coverage/", "node_modules/", "exploit/", "infra/"] },
+  js.configs.recommended,
+```
+
+The helper `forbid(layers)` and the start of the exported configuration; explained in the walkthrough above. The first object in the list is `{ ignores: [...] }`, which names the folders ESLint must skip.
+
+Lines 20 to 41:
+
+```js
+  ...tseslint.configs.strict,
+  {
+    files: ["src/domain/**/*.ts"],
+    rules: forbid(["application", "infrastructure", "interfaces", "pipeline"]),
+  },
+  {
+    files: ["src/application/**/*.ts"],
+    rules: forbid(["infrastructure", "interfaces", "pipeline"]),
+  },
+  {
+    files: ["src/infrastructure/**/*.ts"],
+    rules: forbid(["interfaces", "pipeline"]),
+  },
+  {
+    files: ["src/interfaces/**/*.ts", "src/main.ts"],
+    rules: forbid(["pipeline"]),
+  },
+  {
+    files: ["pipeline/**/*.ts"],
+    rules: forbid(["src"]),
+  },
+);
+```
+
+The preset `tseslint.configs.strict`, spread into the list with `...`, and the five objects that attach the import bans to folders. Each object has `files` (which files it applies to) and `rules` (the result of `forbid([...])`). For `src/domain/**/*.ts` the banned layers are application, infrastructure, interfaces and pipeline; for `src/application/**` infrastructure, interfaces and pipeline; for `src/infrastructure/**` interfaces and pipeline; for `src/interfaces/**` and `src/main.ts` pipeline; for `pipeline/**` the folder `src`.
+
+<!-- /walk:eslint.config.js -->
+
 ## Try it yourself
 
 1. `npx eslint --version` prints `v10.13.0`.

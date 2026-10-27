@@ -568,26 +568,56 @@ try {
 
 Read the file as text (`"utf8"` is the character encoding), validate it, post or update the comment, print what happened. The `await` at the top level (outside any function) is allowed in ES modules. A bad result file ends with exit code 1 and a clear message; other errors propagate and fail the step too.
 
-### `pipeline/trust-policy.ts`: modeling AWS's login check
+<!-- walk:pipeline/trust-policy.ts -->
+### `pipeline/trust-policy.ts`, line by line
 
-This file is a small re-implementation of how AWS reads the trust policy (see `aws-iam.md` and `oidc.md` for what that policy is). It exists so a test can say, without an AWS account, which logins the real policy would accept.
+Lines 1 to 7:
 
 ```ts
-export interface Token { readonly aud: string; readonly sub: string; }
+/**
+ * A model of how AWS evaluates the trust policy of a role that GitHub's OIDC tokens assume.
+ *
+ * Only what the policy in infra/modules/github-oidc-role uses is supported: Allow statements for
+ * sts:AssumeRoleWithWebIdentity, a federated principal, and StringEquals / StringLike conditions on the token's
+ * `aud` and `sub`. Any other effect, action or operator is treated as "does not match", so the model fails closed.
+ */
+```
+
+The header comment says what the file is: a model of how AWS decides whether a login token may assume a role, limited to what this repository's policy uses. Anything else is treated as "does not match", so the model **fails closed** (when unsure, it refuses). A model in code lets a test answer "would AWS accept this token?" without an AWS account.
+
+Lines 9 to 30:
+
+```ts
+export interface Token {
+  readonly aud: string;
+  readonly sub: string;
+}
+
 type ConditionBlock = Record<string, Record<string, string | string[]>>;
+
 export interface Statement {
   readonly Effect: string;
   readonly Action: string | string[];
   readonly Principal: { Federated?: string | string[] };
   readonly Condition?: ConditionBlock;
 }
-export interface TrustPolicy { readonly Statement: Statement[]; }
-export interface Decision { readonly allowed: boolean; readonly reason: string; }
+
+export interface TrustPolicy {
+  readonly Statement: Statement[];
+}
+
+export interface Decision {
+  readonly allowed: boolean;
+  readonly reason: string;
+}
 ```
 
-Shapes: a login token has an audience (`aud`, who it is for) and a subject (`sub`, who is asking). A policy statement has an effect, an action, a principal, and optional conditions: an object of operator names, each holding an object of key to expected value(s). `Decision` is the answer with a reason.
+The shapes of the data. A `Token` has two claims: `aud` (audience: who the token is for) and `sub` (subject: who is asking). `ConditionBlock` is an object from an operator name (such as `StringEquals`) to an object from a key to the expected value or values. A `Statement` has an `Effect` (`Allow` or `Deny`), an `Action`, a `Principal`, and an optional `Condition`. `TrustPolicy` is a list of statements. `Decision` is the answer: allowed or not, with a reason in words. All fields are `readonly`.
+
+Lines 32 to 39:
 
 ```ts
+/** `*` matches any run of characters, `?` one character, like IAM's StringLike. */
 export function likeToRegExp(pattern: string): RegExp {
   const escaped = pattern
     .replace(/[.+^${}()|[\]\\]/g, "\\$&")
@@ -597,7 +627,9 @@ export function likeToRegExp(pattern: string): RegExp {
 }
 ```
 
-AWS's `StringLike` operator treats `*` as "any run of characters" and `?` as "any one character". This function turns such a pattern into a regular expression. First, every character that is special in regular expressions (`. + ^ $ { } ( ) | [ ] \`) is protected by a backslash (`"\\$&"` means a backslash followed by whatever matched, `$&`). Then `*` becomes `.*` (`.` is any character, `*` is "zero or more") and `?` becomes `.`. `new RegExp(text)` builds the pattern from text, with `^...$` anchors so the whole value must match.
+`likeToRegExp` turns an AWS `StringLike` pattern into a regular expression. The first `replace` puts a backslash before each character that has a special meaning in regular expressions (`. + ^ $ { } ( ) | [ ] \`); `"\\$&"` means a backslash followed by the matched character (`$&`). The second makes `*` into `.*` (any characters, any number), the third makes `?` into `.` (any one character). `new RegExp(text)` builds the pattern from text; `^...$` makes it match the whole value.
+
+Lines 41 to 52:
 
 ```ts
 const asList = (value: string | string[]): string[] => (Array.isArray(value) ? value : [value]);
@@ -614,9 +646,12 @@ function conditionHolds(operator: string, expected: string[], actual: string): b
 }
 ```
 
-`asList` makes a single value into a one-item list. `switch` chooses a branch by the operator name: `StringEquals` is true if the actual value is exactly one of the expected ones; `StringLike` is true if it matches any pattern (`.some(fn)` is true if the function is true for at least one item). Any other operator returns `false`: the model **fails closed**, meaning that whatever it does not understand counts as "not allowed".
+`asList` makes a single value into a one-item list (`Array.isArray` tells which case it is). `conditionHolds` applies one operator: `StringEquals` is true if the actual value is exactly one of the expected values; `StringLike` is true if it matches any pattern (`.some(fn)` is true when the function is true for at least one item). `switch` picks the branch by the operator's name; `default` (any other operator) returns `false`, which is the fail-closed rule.
+
+Lines 54 to 78:
 
 ```ts
+/** Would the role be assumed by `token` (issued by `host`) through the identity provider `providerArn`? */
 export function evaluate(policy: TrustPolicy, token: Token, host: string, providerArn: string): Decision {
   let lastReason = "no statement allows sts:AssumeRoleWithWebIdentity";
   for (const statement of policy.Statement) {
@@ -643,17 +678,110 @@ export function evaluate(policy: TrustPolicy, token: Token, host: string, provid
 }
 ```
 
-For each statement: skip it unless it is an `Allow` for the action `sts:AssumeRoleWithWebIdentity` and names the right identity provider. `continue` skips to the next item of the loop. Then the claims of the token are put in an object under the same keys AWS uses (`token.actions.githubusercontent.com:aud` and `:sub`; the square brackets `[...]` around a template literal make a computed key). `Object.entries(x)` gives a list of `[key, value]` pairs, and `for (const [a, b] of list)` loops over them. Every condition must hold; if one fails, the reason text is remembered. If none failed, the answer is "allowed". If no statement allowed it, the answer is "refused" with the last reason.
+`evaluate` goes through the statements. `let lastReason` keeps the most recent explanation. `continue` skips the rest of the loop body for this statement. A statement counts only if it is an `Allow`, is for `sts:AssumeRoleWithWebIdentity`, and names this identity provider (`providerArn`). Then the token's claims are put in an object under the names AWS uses: `` `${host}:aud` `` becomes `token.actions.githubusercontent.com:aud` (the square brackets make the key from an expression). `Object.entries(x)` turns an object into a list of `[key, value]` pairs, and `for (const [a, b] of list)` loops over them. For each condition key the actual claim is looked up; a condition fails if the claim does not exist or the operator says no, and then `failed` holds a readable explanation (`.. is not a claim` or `"actual value" fails StringEquals [...]`). If no condition failed the answer is allowed. If no statement allowed it, the answer is refused, with the last reason.
+
+Lines 80 to 131:
 
 ```ts
-export function scenarios(repository: string, environment: string): Scenario[] { ... }
+export interface Scenario {
+  readonly name: string;
+  readonly token: Token;
+  readonly expected: boolean;
+}
+
+/** The tokens GitHub would issue for the cases the lesson's step 5 tests, for the repository and environment given. */
+export function scenarios(repository: string, environment: string): Scenario[] {
+  const aud = "sts.amazonaws.com";
+  return [
+    {
+      name: "approved deploy job in the environment",
+      token: { aud, sub: `repo:${repository}:environment:${environment}` },
+      expected: true,
+    },
+    {
+      name: "same repository, a feature branch (no environment)",
+      token: { aud, sub: `repo:${repository}:ref:refs/heads/feature` },
+      expected: false,
+    },
+    {
+      name: "same repository, main (no environment)",
+      token: { aud, sub: `repo:${repository}:ref:refs/heads/main` },
+      expected: false,
+    },
+    {
+      name: "same repository, a pull request",
+      token: { aud, sub: `repo:${repository}:pull_request` },
+      expected: false,
+    },
+    {
+      name: "same repository, another environment",
+      token: { aud, sub: `repo:${repository}:environment:staging` },
+      expected: false,
+    },
+    {
+      name: "a fork's pull request",
+      token: { aud, sub: `repo:someone-else/${repository.split("/")[1] ?? "repo"}:pull_request` },
+      expected: false,
+    },
+    {
+      name: "another repository, same environment name",
+      token: { aud, sub: `repo:${repository}-other:environment:${environment}` },
+      expected: false,
+    },
+    {
+      name: "right subject, wrong audience",
+      token: { aud: "sts.example.invalid", sub: `repo:${repository}:environment:${environment}` },
+      expected: false,
+    },
+  ];
+}
 ```
 
-Returns eight sample tokens with the answer the policy should give, in this order: the approved deploy job in the environment (allowed); the same repository on a feature branch; on `main` with no environment; a pull request; another environment; a fork's pull request (`repo:someone-else/<name>:pull_request`); another repository with the same environment name (`<repository>-other`); and the right subject with a wrong audience (`sts.example.invalid`). Only the first is allowed. `repository.split("/")[1] ?? "repo"` takes the part after the slash, with a fallback because of `noUncheckedIndexedAccess`.
+`scenarios(repository, environment)` returns eight sample logins and the answer each should get. The `aud` is always `sts.amazonaws.com`, except in the last. (1) The approved deploy job: `sub` is `repo:<repo>:environment:<environment>`: **allowed**. (2) The same repository on a feature branch: `...:ref:refs/heads/feature`: refused. (3) On `main` with no environment: refused. (4) A pull request: `...:pull_request`: refused. (5) Another environment (`staging`): refused. (6) A fork's pull request: the owner part is `someone-else`, and `repository.split("/")[1] ?? "repo"` is the repository name after the slash, with a fallback because the compiler says the item might be missing: refused. (7) Another repository whose name merely starts the same (`<repo>-other`): refused. (8) The right subject with the wrong audience `sts.example.invalid`: refused.
 
-### `pipeline/check-trust-cli.ts`
+<!-- /walk:pipeline/trust-policy.ts -->
 
-It reads the JSON plan that Terraform produced (see `terraform.md`), finds the planned `aws_iam_role` and its `assume_role_policy`, and runs `evaluate` on each scenario:
+<!-- walk:pipeline/check-trust-cli.ts -->
+### `pipeline/check-trust-cli.ts`, line by line
+
+Lines 1 to 12:
+
+```ts
+import { readFileSync } from "node:fs";
+import { evaluate, scenarios, type TrustPolicy } from "./trust-policy.js";
+
+/**
+ * usage: tsx pipeline/check-trust-cli.ts PLAN.json OWNER/REPO ENVIRONMENT
+ * PLAN.json comes from `terraform show -json PLAN`. Exits 1 if any scenario gets a different answer than expected.
+ */
+const [planFile, repository, environment] = process.argv.slice(2);
+if (!planFile || !repository || !environment) {
+  console.error("usage: check-trust-cli.ts PLAN.json OWNER/REPO ENVIRONMENT");
+  process.exit(2);
+}
+```
+
+Imports, a usage comment, and argument handling. `process.argv.slice(2)` are the command-line words after the program name; `const [planFile, repository, environment] = ...` takes the first three. If any is missing, an explanation goes to standard error and the program ends with code 2 (`process.exit(2)`): exit code 2 here means "could not even check".
+
+Lines 14 to 24:
+
+```ts
+interface PlannedResource {
+  readonly type: string;
+  readonly values: { readonly assume_role_policy?: string; readonly url?: string };
+}
+interface Plan {
+  readonly planned_values: { readonly root_module: Module };
+}
+interface Module {
+  readonly resources?: PlannedResource[];
+  readonly child_modules?: Module[];
+}
+```
+
+Interfaces that describe only the parts of Terraform's JSON plan that this program reads: a planned resource has a `type` and `values` (with an optional `assume_role_policy` text or `url`); a module has `resources` and `child_modules`; the plan has `planned_values.root_module`.
+
+Lines 26 to 29:
 
 ```ts
 function* resourcesOf(module: Module): Generator<PlannedResource> {
@@ -662,80 +790,416 @@ function* resourcesOf(module: Module): Generator<PlannedResource> {
 }
 ```
 
-`function*` declares a **generator**: a function that produces its results one at a time with `yield`. `yield*` hands over every item of another list or generator. This one produces every resource of a module and, recursively, of its child modules (a Terraform plan nests modules inside modules). `[...resourcesOf(...)]` collects them in a list.
+A **generator function** (`function*`). It produces values one at a time with `yield`: first this module's resources (`?? []` means "or an empty list if none"), and then, with `yield*`, everything that the same function produces for each child module. Terraform nests modules inside modules, so the walk has to be recursive (a function that calls itself).
+
+Lines 31 to 38:
 
 ```ts
+const plan = JSON.parse(readFileSync(planFile, "utf8")) as Plan;
+const resources = [...resourcesOf(plan.planned_values.root_module)];
 const role = resources.find((resource) => resource.type === "aws_iam_role");
 const provider = resources.find((resource) => resource.type === "aws_iam_openid_connect_provider");
-const policy = JSON.parse(role.values.assume_role_policy) as TrustPolicy;
+if (!role?.values.assume_role_policy) {
+  console.error("check-trust: the plan has no aws_iam_role with a known assume_role_policy");
+  process.exit(2);
+}
 ```
 
-The policy is JSON text stored inside the plan's JSON, so it is parsed a second time. Then each scenario is run, one line is printed (`ok` or `FAIL`, `ASSUMED` or `REFUSED`, the name, the subject, the reason), mismatches are counted, and the exit code is 0 only if all eight matched. Missing pieces end with exit code 2 (a different, "cannot even check" kind of failure).
+Read the plan file (`readFileSync(planFile, "utf8")`), parse it as JSON (`as Plan` tells the compiler the expected shape; the file comes from Terraform, not from a stranger), collect all resources into a list with `[...resourcesOf(...)]`, and find the first role (`aws_iam_role`) and the first identity provider. Without a role that has a known policy text, print an error and exit 2.
 
-### `pipeline/harden-lint.ts`: the workflow linter
+Lines 40 to 47:
 
-A linter reads files and reports problems without running them. This one reads GitHub workflow files (YAML, using the `yaml` package, see `yaml-library.md`) and applies eight rules.
+```ts
+const policy = JSON.parse(role.values.assume_role_policy) as TrustPolicy;
+const federated = policy.Statement[0]?.Principal.Federated;
+const providerArn = Array.isArray(federated) ? federated[0] : federated;
+const host = (provider?.values.url ?? "https://token.actions.githubusercontent.com").replace(/^https:\/\//, "");
+if (!providerArn) {
+  console.error("check-trust: the trust policy names no federated principal");
+  process.exit(2);
+}
+```
+
+The role's trust policy is a **JSON text inside the plan's JSON**, so it is parsed a second time. The identity provider's ARN is read from the first statement's principal (it may be a single text or a list, hence `Array.isArray`). The host name is the provider's URL without the leading `https://` (`.replace(/^https:\/\//, "")`), defaulting to GitHub's. Without a federated principal: error, exit 2.
+
+Lines 49 to 63:
+
+```ts
+let mismatches = 0;
+for (const scenario of scenarios(repository, environment)) {
+  const decision = evaluate(policy, scenario.token, host, providerArn);
+  const ok = decision.allowed === scenario.expected;
+  if (!ok) mismatches += 1;
+  console.log(
+    `${ok ? "ok  " : "FAIL"} ${decision.allowed ? "ASSUMED" : "REFUSED"}  ${scenario.name}  [${scenario.token.sub}]  ${decision.reason}`,
+  );
+}
+console.log(
+  mismatches === 0
+    ? "check-trust: the trust policy behaves as intended"
+    : `check-trust: ${mismatches} scenario(s) differ`,
+);
+process.exit(mismatches === 0 ? 0 : 1);
+```
+
+The check. `let mismatches = 0` counts disagreements. For each of the eight scenarios, `evaluate` gives a decision; `ok` is true when the decision equals the scenario's expectation. One line is printed: `ok` or `FAIL`, then `ASSUMED` or `REFUSED`, the scenario name, the token's subject in brackets and the reason. At the end a summary line is printed and the exit code is 0 only if there was no mismatch, so `make check-trust` fails the build if the Terraform policy ever stops behaving as intended.
+
+<!-- /walk:pipeline/check-trust-cli.ts -->
+
+<!-- walk:pipeline/harden-lint.ts -->
+### `pipeline/harden-lint.ts`, line by line
+
+Lines 1 to 3:
+
+```ts
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
+import { LineCounter, parseDocument, type Document, type Node } from "yaml";
+```
+
+Imports. `readFileSync`, `readdirSync` and `statSync` from `node:fs` read files, list a folder and ask whether a path is a folder. `join` glues path pieces. `LineCounter` and `parseDocument` from the `yaml` package parse workflow text and remember line positions (see `yaml-library.md`); `type Document` and `type Node` are only types.
+
+Lines 5 to 19:
+
+```ts
+export type Severity = "error" | "warning";
+
+export interface Finding {
+  readonly rule: RuleId;
+  readonly severity: Severity;
+  readonly file: string;
+  readonly line: number;
+  readonly job: string | undefined;
+  readonly message: string;
+}
+
+type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
+type Mapping = { [key: string]: Json };
+type Path = (string | number)[];
+```
+
+The shapes. `Severity` is one of two words. A `Finding` records which rule fired, how serious it is, in which file and at which line, in which job (or `undefined` for the whole workflow), and a message. `Json` describes anything that parsed YAML can contain; it refers to itself (`Json[]`, `{ [key: string]: Json }`), which TypeScript allows. `Mapping` is an object of such values; `Path` is a list of keys and positions (`["jobs", "greet", "steps", 0]`) that points at a place in the document.
+
+Lines 21 to 31:
 
 ```ts
 export const RULES = {
   "script-injection": "an event field reaches a shell script through an expression (lab attack 1: greet.yml)",
-  "privileged-checkout": "...",
-  "missing-permissions": "...",
-  "broad-permissions": "...",
-  "unpinned-action": "...",
-  "persist-credentials": "...",
-  "stored-cloud-key": "...",
-  "oidc-without-environment": "...",
+  "privileged-checkout": "a privileged trigger checks out the pull request's own code (lab attack 2: pr-build.yml)",
+  "missing-permissions": "no permissions block, so the token takes the repository default (lab attack 3: label.yml)",
+  "broad-permissions": "write-all, or write permissions granted to every job of the workflow",
+  "unpinned-action": "an action is referenced by a tag or branch, which its owner can move",
+  "persist-credentials": "checkout leaves the token in the git config for later steps",
+  "stored-cloud-key": "a long-lived cloud credential is read from a secret instead of OIDC",
+  "oidc-without-environment": "a job can request an OIDC token but is not tied to an environment",
 } as const;
 export type RuleId = keyof typeof RULES;
 ```
 
-An object from rule name to description; `keyof typeof RULES` is "the union of the object's keys", so a rule id can only be one of these eight.
+The eight rules and their one-line descriptions, each tied to the lab attack it would have caught. `as const` freezes the object so its keys are exact text types; `keyof typeof RULES` is the union of the keys, used as the type `RuleId`, so a rule id outside this list does not compile.
+
+Lines 33 to 42:
 
 ```ts
 const EXPRESSION = /\$\{\{([\s\S]*?)\}\}/g;
-```
-
-Matches `${{ ... }}`: `\$\{\{` is the literal characters (each escaped), `([\s\S]*?)` captures anything (including line breaks; `[\s\S]` means any character, `*?` means "as few as possible"), `\}\}` closes it.
-
-```ts
-const SAFE_EVENT_FIELD = /^github\.event\.(number|pull_request\.number|issue\.number|workflow_run\.id|workflow_run\.run_id)$/;
+/** Event fields that are numbers or ids GitHub generates, not text a stranger typed. */
+const SAFE_EVENT_FIELD =
+  /^github\.event\.(number|pull_request\.number|issue\.number|workflow_run\.id|workflow_run\.run_id)$/;
 const EVENT_REFERENCE = /github\.event\.[A-Za-z0-9_.*'-]+|github\.head_ref|github\.ref_name/g;
 const PR_HEAD = /github\.event\.pull_request\.head|github\.head_ref|github\.event\.workflow_run\.head|refs\/pull\//;
 const PINNED = /^[\w.-]+\/[\w./-]+@[0-9a-f]{40}$/;
-const CLOUD_KEY = /secrets\.(AWS_[A-Z0-9_]*(KEY|TOKEN)[A-Z0-9_]*|[A-Z0-9_]*(CREDENTIALS|SA_KEY|SERVICE_ACCOUNT_KEY)[A-Z0-9_]*|AZURE_CLIENT_SECRET|DEPLOY_TOKEN)\b/;
+const CLOUD_KEY =
+  /secrets\.(AWS_[A-Z0-9_]*(KEY|TOKEN)[A-Z0-9_]*|[A-Z0-9_]*(CREDENTIALS|SA_KEY|SERVICE_ACCOUNT_KEY)[A-Z0-9_]*|AZURE_CLIENT_SECRET|DEPLOY_TOKEN)\b/;
 const PRIVILEGED_TRIGGERS = ["pull_request_target", "workflow_run"];
 ```
 
-`SAFE_EVENT_FIELD`: the few event fields that are numbers GitHub makes (an issue number, a run id), which no stranger can fill with text. `EVENT_REFERENCE`: any `github.event.<something>`, `github.head_ref` (the name of the branch of a pull request, chosen by its author) or `github.ref_name`. `PR_HEAD`: references to the pull request's own commit or branch. `PINNED`: `owner/name@` followed by exactly 40 hex characters. `CLOUD_KEY`: secret names that look like long-lived cloud credentials. `\w` means "a letter, digit or underscore"; `\b` is a word boundary.
+The regular expressions and constants. `EXPRESSION` finds `${{ ... }}`. `SAFE_EVENT_FIELD` lists the few event fields that are numbers GitHub generates (an issue number, a run id). `EVENT_REFERENCE` finds `github.event.<anything>`, `github.head_ref` (the pull request branch name, chosen by its author) and `github.ref_name`. `PR_HEAD` finds references to the pull request's own commit or branch. `PINNED` is `owner/name@` plus exactly 40 hexadecimal characters. `CLOUD_KEY` recognizes secret names such as `AWS_..._KEY`, `..._CREDENTIALS`, `AZURE_CLIENT_SECRET` and `DEPLOY_TOKEN`; `\b` is a word boundary. `PRIVILEGED_TRIGGERS` are the two triggers that run with the real repository's rights.
+
+Lines 44 to 57:
 
 ```ts
-type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
+function asMapping(value: Json | undefined): Mapping {
+  return value !== null && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function asList(value: Json | undefined): Json[] {
+  return Array.isArray(value) ? value : [];
+}
+
+/** The event names a workflow listens to, whether `on` is a string, a list or a map. */
+export function triggersOf(on: Json | undefined): string[] {
+  if (typeof on === "string") return [on];
+  if (Array.isArray(on)) return on.filter((item): item is string => typeof item === "string");
+  return Object.keys(asMapping(on));
+}
 ```
 
-A type that describes anything JSON can contain; it refers to itself (`Json[]`), which TypeScript allows.
+Three small helpers that make odd input harmless. `asMapping` returns the value if it is an object (not `null`, not an array) and an empty object otherwise; `asList` does the same for lists. `triggersOf(on)` returns the event names whether `on:` is a text (`on: push`), a list or a map; the type guard `(item): item is string` tells the compiler that the filtered list contains only texts.
 
-`asMapping` and `asList` return an empty object or list when the value is not of that kind, so that the rest of the code never crashes on an odd workflow file. `triggersOf(on)` returns the event names whether `on:` is written as one word, a list or a map. `untrustedReferences(text)` loops over every `${{ ... }}` (`text.matchAll(EXPRESSION)`), looks inside for event references, and returns those that are not in the safe list.
-
-`lintWorkflow(file, text)` is the main function. It parses the YAML to both a plain data object and a tree with line positions (`LineCounter`, see `yaml-library.md`), defines a helper `report(rule, severity, path, job, message)` that records a finding with its line number, then runs the rules:
-
-1. If the top-level `permissions` is the text `write-all`: error `broad-permissions`. If it contains any `write` value: warning (write rights granted to every job).
-2. For each job: if neither the workflow nor the job has `permissions`: error `missing-permissions`. If the job has `write-all`: error. If the job has `id-token: write` without an `environment`: warning `oidc-without-environment`. If the job's `env` contains a cloud-key-like secret: error `stored-cloud-key`.
-3. For each step (or the single `uses` of a job that calls a reusable workflow): if `uses` is not local (`./`), not a `docker://` image, and not matched by `PINNED`: error `unpinned-action`. For the `run` text and for the `with.script` text (used by `actions/github-script`): any untrusted reference gives error `script-injection`.
-4. For a `uses` that starts with `actions/checkout`: if the workflow has a privileged trigger and `ref` or `repository` points at the pull request: error `privileged-checkout`. If `persist-credentials` is not `false`: `persist-credentials` (error under a privileged trigger, otherwise a warning).
-5. If any step's JSON text matches the cloud-key pattern: error `stored-cloud-key`.
-
-`lintPaths(paths)` accepts files and folders (a folder means every `.yml`/`.yaml` file in it, sorted) and concatenates the findings with `flatMap` (map each item to a list and join the lists). `formatFinding` prints `file:line: severity [rule] message (job NAME)`.
-
-### `pipeline/harden-lint-cli.ts`
+Lines 59 to 68:
 
 ```ts
+/** The untrusted-looking references inside every expression of `text`. */
+export function untrustedReferences(text: string): string[] {
+  const found: string[] = [];
+  for (const expression of text.matchAll(EXPRESSION)) {
+    for (const reference of (expression[1] ?? "").matchAll(EVENT_REFERENCE)) {
+      if (!SAFE_EVENT_FIELD.test(reference[0])) found.push(reference[0]);
+    }
+  }
+  return found;
+}
+```
+
+`untrustedReferences(text)` collects every event reference that a stranger could fill with text. `text.matchAll(EXPRESSION)` yields each `${{ ... }}`; `expression[1]` is the part inside (the first captured group; `?? ""` guards a missing one); a second `matchAll` finds the event references inside it; those that do not match `SAFE_EVENT_FIELD` are added to `found`.
+
+Lines 70 to 89:
+
+```ts
+/** Lint one workflow file's text; `file` only labels the findings. */
+export function lintWorkflow(file: string, text: string): Finding[] {
+  const lineCounter = new LineCounter();
+  const document: Document = parseDocument(text, { lineCounter });
+  // YAML 1.1 reads the key `on` as the boolean true; the yaml package keeps it as the string "on".
+  const workflow = asMapping(document.toJS() as Json);
+  const findings: Finding[] = [];
+
+  const lineOf = (path: Path): number => {
+    const node = document.getIn(path, true) as Node | null | undefined;
+    return lineCounter.linePos(node?.range?.[0] ?? 0).line;
+  };
+  const report = (rule: RuleId, severity: Severity, path: Path, job: string | undefined, message: string): void => {
+    findings.push({ rule, severity, file, line: lineOf(path), job, message });
+  };
+
+  const triggers = triggersOf(workflow["on"]);
+  const privilegedTriggers = triggers.filter((trigger) => PRIVILEGED_TRIGGERS.includes(trigger));
+  const topPermissions = workflow["permissions"];
+```
+
+`lintWorkflow(file, text)` starts. It parses the YAML twice over: `parseDocument` gives the tree with positions, `document.toJS()` gives plain data. The comment explains that YAML 1.1 would read the key `on` as the boolean `true`, but this package keeps it as the text `"on"`. `lineOf(path)` finds the node at a path (`getIn(path, true)` asks for the node, not its value) and converts its start position to a line number. `report(...)` adds a `Finding` with that line. Then the event names and the privileged ones among them are computed and the top-level `permissions` is read.
+
+Lines 90 to 106:
+
+```ts
+  if (topPermissions === "write-all") {
+    report(
+      "broad-permissions",
+      "error",
+      ["permissions"],
+      undefined,
+      "permissions: write-all gives the token every scope",
+    );
+  } else if (Object.values(asMapping(topPermissions)).includes("write")) {
+    report(
+      "broad-permissions",
+      "warning",
+      ["permissions"],
+      undefined,
+      "write permissions at the workflow level reach every job; grant them per job",
+    );
+  }
+```
+
+Rule `broad-permissions` for the whole workflow: `permissions: write-all` is an **error** (every scope); if the block lists any scope as `write` (`Object.values(...).includes("write")`), a **warning**, because write rights at the top reach every job.
+
+Lines 108 to 138:
+
+```ts
+  for (const [jobId, rawJob] of Object.entries(asMapping(workflow["jobs"]))) {
+    const job = asMapping(rawJob);
+    const jobPermissions = job["permissions"];
+
+    if (topPermissions === undefined && jobPermissions === undefined) {
+      report(
+        "missing-permissions",
+        "error",
+        ["jobs", jobId],
+        jobId,
+        "no permissions at the workflow or the job: the token takes the repository default, which may be read and write",
+      );
+    }
+    if (jobPermissions === "write-all") {
+      report(
+        "broad-permissions",
+        "error",
+        ["jobs", jobId, "permissions"],
+        jobId,
+        "permissions: write-all gives the token every scope",
+      );
+    }
+    if (asMapping(jobPermissions)["id-token"] === "write" && job["environment"] === undefined) {
+      report(
+        "oidc-without-environment",
+        "warning",
+        ["jobs", jobId],
+        jobId,
+        "id-token: write without an environment: the trust policy cannot require an approval",
+      );
+    }
+```
+
+For each job (`Object.entries(...)` pairs of job id and definition). Rule `missing-permissions`: neither the workflow nor the job has `permissions` (the token would take the repository default, possibly read and write): error. Rule `broad-permissions`: a job with `write-all`: error. Rule `oidc-without-environment`: a job with `id-token: write` and no `environment`: warning, because the trust policy then cannot require an approval.
+
+Lines 140 to 149:
+
+```ts
+    const jobKey = CLOUD_KEY.exec(JSON.stringify(job["env"] ?? {}));
+    if (jobKey) {
+      report(
+        "stored-cloud-key",
+        "error",
+        ["jobs", jobId, "env"],
+        jobId,
+        `${jobKey[0]} is a long-lived credential; use OIDC to get temporary ones`,
+      );
+    }
+```
+
+Rule `stored-cloud-key` at job level: `JSON.stringify(job["env"] ?? {})` turns the job's `env` into text so the `CLOUD_KEY` pattern can search it; a match is an error, with the matched secret name in the message (`jobKey[0]`).
+
+Lines 151 to 161:
+
+```ts
+    const reusable = job["uses"];
+    const steps: Json[] = typeof reusable === "string" ? [{ uses: reusable }] : asList(job["steps"]);
+    steps.forEach((rawStep, index) => {
+      const step = asMapping(rawStep);
+      const stepPath: Path = typeof reusable === "string" ? ["jobs", jobId] : ["jobs", jobId, "steps", index];
+      const uses = step["uses"];
+      const withInputs = asMapping(step["with"]);
+
+      if (typeof uses === "string" && !uses.startsWith("./") && !uses.startsWith("docker://") && !PINNED.test(uses)) {
+        report("unpinned-action", "error", [...stepPath, "uses"], jobId, `${uses} is not pinned to a full commit SHA`);
+      }
+```
+
+Each step. A job may instead call a **reusable workflow** with `uses:` at job level; then there are no steps, and the job itself is treated as one step. `steps.forEach((rawStep, index) => { ... })` runs the body for each step. `stepPath` is where the step lives in the document, used for the line number. Rule `unpinned-action`: a `uses` that is not a local path (`./`), not a `docker://` image, and does not match `PINNED`: error.
+
+Lines 163 to 179:
+
+```ts
+      const scripts: [string | Json | undefined, Path][] = [
+        [step["run"], [...stepPath, "run"]],
+        [withInputs["script"], [...stepPath, "with", "script"]],
+      ];
+      for (const [code, path] of scripts) {
+        if (typeof code !== "string") continue;
+        const references = untrustedReferences(code);
+        if (references.length > 0) {
+          report(
+            "script-injection",
+            "error",
+            path,
+            jobId,
+            `${[...new Set(references)].join(", ")} is expanded into the script before the shell runs it; pass it through env and read it as a shell variable`,
+          );
+        }
+      }
+```
+
+Rule `script-injection`. Two places can hold code: the `run` text and the `script` input of `actions/github-script`. For each, `untrustedReferences` is called; if it finds any, an error lists them once each (`[...new Set(references)]` removes duplicates) and says to pass them through `env`.
+
+Lines 181 to 201:
+
+```ts
+      if (typeof uses === "string" && uses.startsWith("actions/checkout")) {
+        const aimedAtPullRequest = ["ref", "repository"].some((key) => PR_HEAD.test(String(withInputs[key] ?? "")));
+        if (privilegedTriggers.length > 0 && aimedAtPullRequest) {
+          report(
+            "privileged-checkout",
+            "error",
+            [...stepPath, "with"],
+            jobId,
+            `${privilegedTriggers.join(" / ")} checks out the pull request's own code, which then runs with this repository's privileges`,
+          );
+        }
+        if (withInputs["persist-credentials"] !== false) {
+          report(
+            "persist-credentials",
+            privilegedTriggers.length > 0 ? "error" : "warning",
+            [...stepPath, step["with"] === undefined ? "uses" : "with"],
+            jobId,
+            "checkout keeps the token in .git/config; set persist-credentials: false",
+          );
+        }
+      }
+```
+
+Rules for a checkout step (`uses` starting with `actions/checkout`). `aimedAtPullRequest` is true if the `ref` or `repository` input mentions the pull request's own code (`some(...)` over the two input names, tested with `PR_HEAD`). With a privileged trigger that is rule `privileged-checkout`: error. Separately, `persist-credentials` not set to `false` is rule `persist-credentials`: an error under a privileged trigger, otherwise a warning; the position is the `with` block if there is one, else the `uses` line.
+
+Lines 203 to 216:
+
+```ts
+      const key = CLOUD_KEY.exec(JSON.stringify(step));
+      if (key) {
+        report(
+          "stored-cloud-key",
+          "error",
+          stepPath,
+          jobId,
+          `${key[0]} is a long-lived credential; use OIDC to get temporary ones`,
+        );
+      }
+    });
+  }
+  return findings;
+}
+```
+
+Rule `stored-cloud-key` at step level: the whole step as text is searched with `CLOUD_KEY`. The function ends by returning all findings.
+
+Lines 218 to 226:
+
+```ts
+function workflowFiles(path: string): string[] {
+  if (statSync(path).isDirectory()) {
+    return readdirSync(path)
+      .filter((name) => /\.ya?ml$/.test(name))
+      .sort()
+      .map((name) => join(path, name));
+  }
+  return [path];
+}
+```
+
+`workflowFiles(path)`: if the path is a folder, list its files, keep those ending `.yml` or `.yaml` (the regular expression `/\.ya?ml$/`), sort them for a stable order and join each with the folder name; otherwise the path itself is the one file.
+
+Lines 228 to 237:
+
+```ts
+/** Lint every workflow file under the given files and folders. */
+export function lintPaths(paths: readonly string[]): Finding[] {
+  return paths.flatMap(workflowFiles).flatMap((file) => lintWorkflow(file, readFileSync(file, "utf8")));
+}
+
+/** `file:line: severity [rule] message (job)` */
+export function formatFinding(finding: Finding): string {
+  const job = finding.job ? ` (job ${finding.job})` : "";
+  return `${finding.file}:${finding.line}: ${finding.severity} [${finding.rule}] ${finding.message}${job}`;
+}
+```
+
+`lintPaths` expands the given paths into files with `flatMap` (map each item to a list and join the lists) and lints each file's text. `formatFinding` prints `file:line: severity [rule] message`, with ` (job NAME)` appended when the finding is in a job.
+
+<!-- /walk:pipeline/harden-lint.ts -->
+
+<!-- walk:pipeline/harden-lint-cli.ts -->
+### `pipeline/harden-lint-cli.ts`, line by line
+
+Lines 1 to 15:
+
+```ts
+import { RULES, formatFinding, lintPaths } from "./harden-lint.js";
+
 const args = process.argv.slice(2);
 const paths = args.filter((arg) => !arg.startsWith("--"));
+
 if (args.includes("--rules")) {
   for (const [id, description] of Object.entries(RULES)) console.log(`${id}\t${description}`);
   process.exit(0);
 }
+
 const findings = lintPaths(paths.length > 0 ? paths : [".github/workflows"]);
 for (const finding of findings) console.log(formatFinding(finding));
 const errors = findings.filter((finding) => finding.severity === "error").length;
@@ -743,7 +1207,58 @@ console.log(`harden-lint: ${errors} error(s), ${findings.length - errors} warnin
 process.exit(findings.length > 0 ? 1 : 0);
 ```
 
-Arguments starting with `--` are options, the rest are paths (default: the repository's own workflows). `--rules` prints the eight rule ids and descriptions separated by a tab character (`\t`) and exits. Otherwise print each finding, then a summary line, and exit 1 if there was any finding, warnings included.
+The command-line wrapper. Words starting with `--` are options; the others are paths (default `.github/workflows`). `--rules` prints each rule id and description separated by a tab (`\t`) and exits with code 0. Otherwise every finding is printed, then a summary line `harden-lint: N error(s), M warning(s)`, and the exit code is 1 if there was any finding at all (warnings count), else 0.
+
+<!-- /walk:pipeline/harden-lint-cli.ts -->
+
+<!-- walk:pipeline/github-comments.ts -->
+### `pipeline/github-comments.ts`, line by line
+
+Lines 1 to 1:
+
+```ts
+import { COMMENT_MARKER } from "./build-result.js";
+```
+
+Imports the marker text from `build-result.ts`, so the poster and the renderer agree on how our own comment is recognized.
+
+Lines 13 to 18:
+
+```ts
+  repository: string,
+  pr: number,
+  body: string,
+): Promise<"created" | "updated"> {
+  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) {
+    throw new Error(`not a repository name: ${JSON.stringify(repository.slice(0, 80))}`);
+```
+
+The head of `upsertComment`: the parameters are the API (an object that implements `Comments`), the repository name, the pull request number and the new comment text; the promise it returns resolves to either the word `created` or `updated`. The first check is the repository-name pattern.
+
+Lines 31 to 35:
+
+```ts
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+```
+
+The constructor of `HttpError`. The parameter `readonly status: number` is a field declaration and a parameter at once; `message: string` is passed to the parent class with `super(message)`.
+
+Lines 63 to 66:
+
+```ts
+  }
+
+  async list(repository: string, pr: number): Promise<{ id: number; body: string }[]> {
+    const response = await this.request("GET", `/repos/${repository}/issues/${pr}/comments?per_page=100`);
+```
+
+`list` asks for up to 100 comments of the pull request and returns them parsed from JSON as a list of `{ id, body }` objects. The cast `as ...` is acceptable here because GitHub's documented answer has that shape; each `create` and `update` below it follows the same pattern.
+
+<!-- /walk:pipeline/github-comments.ts -->
 
 ## Try it yourself
 

@@ -85,6 +85,50 @@ writeFileSync(file, `${JSON.stringify(pkg, null, 2)}\n`);
 
 In the Dockerfile, Node is fetched from `nodejs.org/dist/v22.12.0/` for the machine's CPU type and unpacked into `/usr/local`, so JavaScript-based actions and `npm` work inside the `act` image.
 
+<!-- walk:exploit/fork/apply-fork-change.mjs -->
+### `exploit/fork/apply-fork-change.mjs`, line by line
+
+Lines 1 to 9:
+
+```js
+// The one change the lesson's fork pull request makes: it replaces the `build` script in package.json.
+//
+// `make run` applies it to a copy of the repository (never to the real files) and lets act "check out" that copy, which
+// is what a checkout of the fork's head commit would put in the workspace. The new script prints which event it runs
+// under and whether a variable NAMED DEPLOY_TOKEN is in its environment. It checks the name only; it never reads,
+// prints or sends the value.
+//
+// usage: node exploit/fork/apply-fork-change.mjs PATH/TO/package.json
+import { readFileSync, writeFileSync } from "node:fs";
+```
+
+A `.mjs` file is always an ES module. The comment explains what the file simulates: the change that the lesson's fork pull request makes, applied to a **copy** of the repository by `make run`. The new `build` script prints the event name and whether a variable *named* `DEPLOY_TOKEN` exists, never its value. The `import` line loads two file functions.
+
+Lines 11 to 15:
+
+```js
+const file = process.argv[2];
+if (!file) {
+  console.error("usage: node apply-fork-change.mjs PATH/TO/package.json");
+  process.exit(2);
+}
+```
+
+`process.argv[2]` is the first argument. Without it, print a usage message to standard error and exit with code 2.
+
+Lines 17 to 20:
+
+```js
+const pkg = JSON.parse(readFileSync(file, "utf8"));
+pkg.scripts.build =
+  'node -e "console.log(\'FORK CODE RAN: event=\' + process.env.GITHUB_EVENT_NAME + \' deploy-token-in-environment=\' + (\'DEPLOY_TOKEN\' in process.env))"';
+writeFileSync(file, `${JSON.stringify(pkg, null, 2)}\n`);
+```
+
+Read the `package.json` and parse it (`JSON.parse`); replace its `scripts.build` with a one-line program run by `node -e` (`-e` means "evaluate this text as a program"): it prints `FORK CODE RAN: event=` plus the event name, ` deploy-token-in-environment=` and the result of `'DEPLOY_TOKEN' in process.env`, which is `true` or `false` according to whether the variable exists. Then write the file back with two-space indentation (`JSON.stringify(pkg, null, 2)`) and a final line break.
+
+<!-- /walk:exploit/fork/apply-fork-change.mjs -->
+
 ## Try it yourself
 
 1. `node --version` prints your Node version. The repository needs 22.12 or newer.

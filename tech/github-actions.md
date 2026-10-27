@@ -425,6 +425,25 @@ Job `infra` (timeout 15 minutes): checkout, Node, then
 
 `setup-terraform` installs Terraform; `terraform_wrapper: false` turns off a helper that wraps the program's output, so `terraform show -json` prints clean JSON. `make infra-check` runs the format check, the offline tests, validation, an offline plan and the trust-policy check (see `terraform.md`, `make.md`).
 
+<!-- walk:.github/workflows/ci.yml -->
+### `.github/workflows/ci.yml`, line by line
+
+Lines 30 to 36:
+
+```yaml
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - run: npm audit --audit-level=high
+```
+
+The `app` job's steps in order: `npm ci --ignore-scripts` (install exactly the locked packages), `npm run typecheck` (compile without output), `npm run lint` (ESLint and Prettier), `npm test` (Vitest with coverage), `npm run build` (compile `src` into `dist`), `npm audit --audit-level=high`.
+
+<!-- /walk:.github/workflows/ci.yml -->
+
 ## Try it yourself
 
 1. `grep -n "permissions" .github/workflows/*.yml` shows that every workflow and every job states its scopes.

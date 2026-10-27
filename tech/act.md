@@ -122,6 +122,33 @@ runs:
 
 (The real file writes each input on several lines; the content is the same.) The four inputs mirror the real action's. The step passes inputs to the script as environment variables (the same safe pattern as the hardened workflows; `${{ inputs.name }}` is the value given by `with:`). The script: `missing=0` is a flag. `while IFS= read -r file; do ... done <<< "$ARTIFACT_PATHS"` reads the path list one line at a time (`IFS=` keeps leading spaces, `-r` keeps backslashes; `<<<` feeds a text to the loop as input). `[ -n "$file" ] || continue` skips empty lines (`-n` means "not empty"; `||` runs the right side if the left failed). `[ -e "$file" ]` is true if the file exists. `wc -c < "$file"` counts bytes; `tr -d ' '` removes spaces from the number. `${ARTIFACT_RETENTION:-90}` means "the variable, or 90 if empty". At the end, if a file was missing **and** `if-no-files-found` is `error`, exit with code 1 so the job fails, like the real action. This is why `pr-build.yml`'s `if-no-files-found: error` is still enforced under `act`.
 
+<!-- walk:exploit/stubs/upload-artifact/action.yml -->
+### `exploit/stubs/upload-artifact/action.yml`, line by line
+
+Lines 1 to 9:
+
+```yaml
+# Stand-in for actions/upload-artifact when the workflow runs under act on a Mac.
+
+#
+# The real action talks to GitHub's artifact service, which act can only imitate with a server on the host that the
+
+# runner container cannot reach when Docker runs in a VM. This stand-in does what can be checked locally: it lists the
+
+# files that would be uploaded with their sizes and the retention, and fails when a file is missing and
+
+# if-no-files-found is "error". On GitHub the real action runs; scripts/act-matrix.sh maps this stand-in over it with
+
+# act's --local-repository.
+
+name: upload-artifact (act stand-in)
+description: List what actions/upload-artifact would upload, and fail on a missing file when asked to.
+```
+
+The comment explains why the stand-in exists: the real action talks to GitHub's artifact service, which `act` can only imitate with a server on the host that a container running inside a virtual machine cannot reach. `name` and `description` label the action.
+
+<!-- /walk:exploit/stubs/upload-artifact/action.yml -->
+
 ## Try it yourself
 
 1. `act --version` prints the version (checked with 0.2.89 for this repository).

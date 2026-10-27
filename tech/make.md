@@ -126,6 +126,123 @@ clean: down
 
 `npx NAME` runs a program installed in `node_modules/.bin`. A `>` after a command sends its output into a file; `$(TF_ENV)/plan.json` is the path `infra/environments/demo/plan.json`. `-chdir=DIR` is explained in the Terraform note.
 
+<!-- walk:Makefile -->
+### `Makefile`, line by line
+
+Lines 1 to 9:
+
+```make
+# make help lists every target.   make up | run | test | lint | down
+
+ACT_IMAGE := gha-projects-act-runner:ubuntu-24.04
+TF_ENV := infra/environments/demo
+export TF_PLUGIN_CACHE_DIR ?= $(HOME)/.terraform.d/plugin-cache
+STAMP := node_modules/.installed
+# In CI (the CI variable is set) the workflow has already run npm ci.
+
+DEPS := $(if $(CI),,install)
+
+.PHONY: help install up run attack-scan test lint format infra-check plan check-trust audit check down clean
+```
+
+A comment line, then the variables. `ACT_IMAGE` and `TF_ENV` are plain text values. `export TF_PLUGIN_CACHE_DIR ?= ...` hands a cache folder to Terraform (and only if not already set). `STAMP` is the marker file for the install. `DEPS` is empty in CI and `install` elsewhere (the comment above it explains: in CI the workflow has already run `npm ci`). `.PHONY` lists the target names that are commands.
+
+Lines 11 to 22:
+
+```make
+help: ## list the targets
+	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | sed -E 's/:.*## /\t/' | sort
+
+$(STAMP): package-lock.json
+	npm ci --ignore-scripts
+	touch $@
+
+install: $(STAMP) ## install the Node dependencies from the lock file
+
+up: install ## install dependencies and build the act runner image (Docker needed for run)
+	@mkdir -p $(TF_PLUGIN_CACHE_DIR)
+	docker build -q -t $(ACT_IMAGE) ci/act-runner
+```
+
+`help` prints the targets (explained above). The `$(STAMP)` rule installs the locked packages when `package-lock.json` is newer than the marker. `install` is just a name for it. `up` depends on `install`, creates the Terraform plugin cache folder (`@` hides the command from the output) and builds the runner image (`-q` quiet, `-t` name, `ci/act-runner` the folder with the Dockerfile).
+
+Lines 24 to 41:
+
+```make
+# The lesson's attacks on the vulnerable workflows and the fixes, with act, each checked (see scripts/lab.sh).
+
+run: $(DEPS) ## run attacks 1 and 2 and their fixes locally with act; fails unless each behaves as the lesson says
+	scripts/lab.sh
+
+# Stretch 1: point two linters at the vulnerable lab files. They are expected to find problems (exit 1).
+
+attack-scan: $(DEPS) ## lint the vulnerable lab workflows: actionlint and harden-lint both report findings
+	-actionlint exploit/vulnerable/.github/workflows/*.yml
+	-npx tsx pipeline/harden-lint-cli.ts exploit/vulnerable/.github/workflows
+
+test: $(DEPS) ## unit, integration, end-to-end and pipeline tests with coverage
+	npx vitest run --coverage
+
+lint: $(DEPS) ## eslint (with the import rules), prettier, tsc, actionlint, harden-lint, pins
+	npx eslint .
+	npx prettier --check .
+	npx tsc -p tsconfig.json --noEmit
+	actionlint
+	npx tsx pipeline/harden-lint-cli.ts
+```
+
+`run` runs the lab. `attack-scan` runs the two linters on the lab workflows; the leading `-` ignores their failing exit codes. `test` runs Vitest with coverage. `lint` runs, in order: ESLint over everything, Prettier in check mode, the TypeScript compiler without writing output, actionlint, and the repository's own workflow linter; if one fails, the rest are skipped.
+
+Lines 43 to 56:
+
+```make
+format: $(DEPS) ## apply prettier
+	npx prettier --write .
+
+# Terraform checked without an AWS account: format, validate, offline tests of the trust policy, an offline plan, and
+
+# the trust policy of that plan tried against eight tokens.
+
+infra-check: $(DEPS) ## terraform fmt, validate, test, offline plan, then check-trust against the rendered policy
+	terraform fmt -check -recursive infra
+	terraform -chdir=infra/modules/github-oidc-role init -backend=false -input=false
+	terraform -chdir=infra/modules/github-oidc-role test
+	terraform -chdir=infra/modules/release-bucket init -backend=false -input=false
+	terraform -chdir=infra/modules/release-bucket validate
+	terraform -chdir=$(TF_ENV) init -backend=false -input=false
+	terraform -chdir=$(TF_ENV) validate
+	$(MAKE) --no-print-directory check-trust
+```
+
+`format` rewrites files to the Prettier style. `infra-check` is the Terraform sequence: format check; init, test of the role module; init and validate of the bucket module; init and validate of the demo; then `$(MAKE) --no-print-directory check-trust` calls the `check-trust` target of this same Makefile without the "entering directory" noise.
+
+Lines 58 to 75:
+
+```make
+plan: ## offline plan of the demo environment (no credentials)
+	terraform -chdir=$(TF_ENV) init -backend=false -input=false
+	terraform -chdir=$(TF_ENV) plan -var-file=offline.tfvars -input=false -out=plan.bin
+
+check-trust: plan ## try eight OIDC tokens against the planned trust policy
+	terraform -chdir=$(TF_ENV) show -json plan.bin > $(TF_ENV)/plan.json
+	npx tsx pipeline/check-trust-cli.ts $(TF_ENV)/plan.json owner/vulnerable-demo production
+
+audit: $(DEPS) ## npm audit for known vulnerabilities (high and above fail)
+	npm audit --audit-level=high
+
+check: lint test infra-check ## everything that needs no Docker and no cloud account
+
+down: ## remove leftover act containers of this project's runner image
+	-docker ps -aq --filter "ancestor=$(ACT_IMAGE)" | xargs docker rm -f
+
+clean: down
+	rm -rf node_modules dist build coverage $(TF_ENV)/plan.bin $(TF_ENV)/plan.json $(TF_ENV)/.terraform infra/modules/*/.terraform
+```
+
+`plan`: the offline plan. `check-trust` depends on `plan`; it renders the plan as JSON into `plan.json` and runs the checker with the repository `owner/vulnerable-demo` and the environment `production`. `audit` asks npm about known flaws in locked packages (`--audit-level=high` ignores low and moderate ones). `check` has only prerequisites: the three targets that need no Docker and no cloud account. `down` removes leftover containers made from this project's image (`docker ps -aq --filter "ancestor=..."` prints their ids; `xargs docker rm -f` removes them). `clean` depends on `down` and deletes generated folders and files.
+
+<!-- /walk:Makefile -->
+
 ## Try it yourself
 
 1. `make help` prints each target with its description.

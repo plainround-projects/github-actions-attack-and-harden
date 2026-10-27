@@ -72,6 +72,127 @@ The result file, built in `pr-build.yml` by `jq -n` and validated by `pipeline/b
 
 `plan.json` (not committed) is large; `check-trust-cli.ts` walks `planned_values.root_module`, including `child_modules`, to find the resource of type `aws_iam_role` and parses its `assume_role_policy`, which is a JSON string *inside* the JSON. That is why it calls `JSON.parse` twice.
 
+<!-- walk:exploit/events/pull-request-from-fork.json -->
+### `exploit/events/pull-request-from-fork.json`, line by line
+
+Lines 1 to 29:
+
+```json
+{
+  "action": "opened",
+  "number": 3,
+  "pull_request": {
+    "number": 3,
+    "title": "Speed up the build",
+    "user": { "login": "outside-contributor" },
+    "head": {
+      "ref": "speed-up",
+      "sha": "0000000000000000000000000000000000000000",
+      "repo": { "full_name": "outside-contributor/vulnerable-demo", "fork": true }
+    },
+    "base": { "ref": "main", "repo": { "full_name": "owner/vulnerable-demo" } }
+  },
+  "repository": { "full_name": "owner/vulnerable-demo" },
+  "sender": { "login": "outside-contributor" }
+}
+```
+
+The event payload for a pull request opened from a fork, trimmed to what the lab uses: `action` is `opened`; `number` and `pull_request.number` are 3; the pull request has a title, an author (`user.login`), and a `head` (the fork's branch: `ref` the branch name, `sha` a placeholder of forty zeros, `repo.full_name` of the fork, `fork: true`) and a `base` (the target: branch `main` of `owner/vulnerable-demo`). `repository` and `sender` repeat the repository and the person who acted. `act` hands this JSON to the workflow as `github.event`.
+
+<!-- /walk:exploit/events/pull-request-from-fork.json -->
+
+<!-- walk:exploit/events/issue-plain.json -->
+### `exploit/events/issue-plain.json`, line by line
+
+Lines 1 to 9:
+
+```json
+{
+  "action": "opened",
+  "issue": {
+    "number": 8,
+    "title": "Build fails on Windows",
+    "user": { "login": "outside-contributor" }
+  },
+  "repository": { "full_name": "owner/vulnerable-demo" },
+  "sender": { "login": "outside-contributor" }
+```
+
+The same shape as the injection event, with an ordinary title `Build fails on Windows` and number 8. It is the control: the hardened workflow must print it as it is.
+
+<!-- /walk:exploit/events/issue-plain.json -->
+
+<!-- walk:exploit/vulnerable/package.json -->
+### `exploit/vulnerable/package.json`, line by line
+
+Lines 1 to 8:
+
+```json
+{
+  "name": "vulnerable-demo",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "echo building"
+  }
+}
+```
+
+A minimal project file for the lab: a name, a version, `private: true` (npm refuses to publish it), and a `build` script that only echoes `building`. The fork's change replaces that script.
+
+<!-- /walk:exploit/vulnerable/package.json -->
+
+<!-- walk:package.json -->
+### `package.json`, line by line
+
+Lines 1 to 18:
+
+```json
+{
+  "name": "attack-and-harden",
+  "version": "1.0.0",
+  "description": "A repository that was deliberately vulnerable, hardened: script injection, a privileged fork build, a write token, and OIDC with a protected environment.",
+  "private": true,
+  "license": "MIT",
+  "author": "Sumit Srivastava",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "test": "vitest run --coverage"
+  },
+```
+
+The project's identity and settings: `name`, `version`, `description`, `private`, `license`, `author`, `type: module` (files are ES modules), `engines.node` (Node 22.12 or newer) and the five `scripts`.
+
+Lines 19 to 32:
+
+```json
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.19.2",
+    "@vitest/coverage-v8": "5.0.5",
+    "eslint": "10.13.0",
+    "prettier": "3.9.10",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.1",
+    "vite": "7.3.7",
+    "vitest": "5.0.5",
+    "yaml": "2.9.1"
+  }
+}
+```
+
+`devDependencies`: the packages needed only for building, checking and testing, each with an **exact** version (no `^`): `@eslint/js`, `@types/node` (type definitions for Node), `@vitest/coverage-v8`, `eslint`, `prettier`, `tsx`, `typescript`, `typescript-eslint`, `vite`, `vitest` and `yaml`. The lock file records their exact dependencies too.
+
+<!-- /walk:package.json -->
+
 ## Try it yourself
 
 1. `node -e "console.log(JSON.parse(require('fs').readFileSync('exploit/events/issue-injection.json','utf8')).issue.title)"` prints `Looks fine"; echo INJECTED-COMMAND-RAN; echo "`.
