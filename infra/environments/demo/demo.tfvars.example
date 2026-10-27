@@ -1,0 +1,6 @@
+# Copy to demo.tfvars (git-ignored), fill in your own values and run `terraform apply -var-file=demo.tfvars`.
+aws_account_id       = "123456789012"                  # your 12-digit account
+github_repository    = "your-account/vulnerable-demo"  # OWNER/NAME of the repository
+bucket_name          = "your-unique-attack-and-harden-releases"
+region               = "us-east-1"
+create_oidc_provider = true # false if the account already has token.actions.githubusercontent.com
