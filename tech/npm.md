@@ -13,6 +13,31 @@ Three files and one folder matter:
 
 A package can also run code on your machine *while installing*, through "install scripts". That is a security risk, and this repository turns it off.
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **shell**: The program inside a terminal that reads what you type and starts other programs. Bash is a shell.
+- **hash**: A fixed-length fingerprint computed from some data. The same data always gives the same hash; any change gives a different one. SHA-256 and SHA-1 are two ways of computing one.
+- **commit**: A saved snapshot of a project's files in Git, with a message and an author. Every commit has a unique 40-character name (its SHA).
+- **repository**: A project's folder of files together with its complete history of changes. On GitHub, a repository is a page with those files, issues and pull requests.
+- **workflow**: A GitHub Actions automation described in a YAML file under `.github/workflows/`. It names the events that start it and the jobs it runs.
+- **runner**: The computer, usually a virtual machine, on which GitHub runs a job. It starts clean for every job.
+- **CI**: Continuous integration: running checks (build, tests, linters) automatically every time code changes.
+- **URL**: A web address such as `https://api.github.com/zen`.
+- **YAML**: A plain-text format for structured data that uses indentation instead of braces. GitHub workflows are YAML files.
+- **library**: A package of ready-made code that your program calls.
+- **cache**: A saved copy of something slow to produce (such as downloaded packages), kept so the next run can reuse it.
+- **list**: An ordered collection of values written one after another.
+- **folder**: A container for files and other folders on disk (also called a directory).
+- **version**: A number such as `1.2.3` that names one release of software (major.minor.patch).
+- **compiler**: A program that translates code written in one language into another form, and checks it on the way.
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 The project needs a test runner, linters, a compiler and one YAML library. It also teaches supply-chain safety next to workflow safety: the same care that pins an action to a commit applies to pinning packages to exact versions and refusing install scripts.

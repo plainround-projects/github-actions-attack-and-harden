@@ -4,6 +4,25 @@
 
 actionlint is a command-line checker for GitHub Actions workflow files. Like a spell-checker for workflows, it reads the YAML and reports mistakes: unknown keys, wrong types, bad `${{ }}` expressions, undefined job names in `needs`, and (with ShellCheck installed) problems inside `run:` scripts. This repository uses version 1.7.12.
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **shell**: The program inside a terminal that reads what you type and starts other programs. Bash is a shell.
+- **exit code**: A number a program leaves behind when it ends. 0 means success; any other number means failure. Build systems read it to decide whether a step passed.
+- **checksum**: A short fingerprint computed from a file's content. If one byte changes the fingerprint changes, so comparing fingerprints shows whether a file is the one you expected.
+- **pull request**: A proposal on GitHub to merge the commits of one branch into another. People review it and automation checks it before it is merged.
+- **repository**: A project's folder of files together with its complete history of changes. On GitHub, a repository is a page with those files, issues and pull requests.
+- **CI**: Continuous integration: running checks (build, tests, linters) automatically every time code changes.
+- **JSON**: A plain-text format for structured data: objects `{ "name": "value" }`, lists `[1, 2]`, texts in double quotes, numbers, `true`, `false`, `null`. It has no comments.
+- **YAML**: A plain-text format for structured data that uses indentation instead of braces. GitHub workflows are YAML files.
+- **version**: A number such as `1.2.3` that names one release of software (major.minor.patch).
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 It finds workflow mistakes before a push, and it knows the lesson's first attack: it reports an event field that reaches a script through `${{ }}` as "potentially untrusted". The repository runs it beside its own `harden-lint` (ADR 0003 explains why both: actionlint finds mistakes in syntax, types and shell; `harden-lint` encodes this lesson's rules, such as missing `permissions` and unpinned actions).

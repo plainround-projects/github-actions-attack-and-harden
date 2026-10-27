@@ -4,6 +4,35 @@
 
 Bash is a **shell**: a program that reads commands and runs them. A file of commands is a **shell script**. Bash is the normal shell on Linux and macOS, and GitHub's runners (including Windows ones, through Git Bash) have it, so workflow steps here set `shell: bash`.
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **command line**: The text you type after the prompt in a terminal to run a program, such as `npm test`. The words after the program name are its **arguments**; words that start with `-` or `--` are **options** (also called flags).
+- **environment variable**: A named piece of text that is handed to a program by whoever starts it, for example `HOME` or `CI`. Programs read them to learn about the setting they run in.
+- **stream**: A flow of data that is written or read piece by piece, such as the text a program prints.
+- **regular expression**: A compact pattern that describes text, such as `^[0-9]{12}$` (exactly twelve digits). Tools use them to find or check text. Often shortened to **regex**.
+- **checksum**: A short fingerprint computed from a file's content. If one byte changes the fingerprint changes, so comparing fingerprints shows whether a file is the one you expected.
+- **hash**: A fixed-length fingerprint computed from some data. The same data always gives the same hash; any change gives a different one. SHA-256 and SHA-1 are two ways of computing one.
+- **SHA**: A family of hash functions. A Git **commit SHA** is a 40-character hexadecimal fingerprint that names one exact commit.
+- **branch**: A movable name for a line of commits in Git. `main` is the usual name of the primary line.
+- **repository**: A project's folder of files together with its complete history of changes. On GitHub, a repository is a page with those files, issues and pull requests.
+- **secret**: A value such as a password stored in a repository's settings. Workflows can read it, but GitHub hides it in logs.
+- **HTTP**: The protocol (agreed rules) that web browsers and servers use to talk. A request names a **method** (`GET` to read, `POST` to create, `PATCH` to change part, `PUT` to replace, `DELETE` to remove) and an address; the answer carries a **status code** (200 means success, 404 not found, 500 server problem).
+- **Docker**: A tool that builds images and runs containers.
+- **function**: A named piece of code that takes inputs (parameters), does something, and may return a result.
+- **list**: An ordered collection of values written one after another.
+- **boolean**: A value that is either true or false.
+- **folder**: A container for files and other folders on disk (also called a directory).
+- **version**: A number such as `1.2.3` that names one release of software (major.minor.patch).
+- **assert**: A statement that checks something is true and fails loudly if it is not.
+- **Terraform**: A tool that creates cloud resources from files that describe them.
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 The scripts that run the lab, change repository settings, publish variables and install a checked tool are Bash. Bash also appears inside the workflows (`run:` blocks) and the Makefile recipes. These are exactly the places where the lesson's first attack lives: shell code built from text a stranger typed.

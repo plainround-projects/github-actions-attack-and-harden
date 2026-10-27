@@ -12,6 +12,25 @@ With OIDC there is no stored key:
 
 Think of a hotel key card instead of a master key: made when you arrive, works for a short time, and only opens the doors the hotel decided.
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **commit**: A saved snapshot of a project's files in Git, with a message and an author. Every commit has a unique 40-character name (its SHA).
+- **branch**: A movable name for a line of commits in Git. `main` is the usual name of the primary line.
+- **fork**: Your own copy of someone else's repository on GitHub. Strangers propose changes by changing their fork and opening a pull request from it.
+- **repository**: A project's folder of files together with its complete history of changes. On GitHub, a repository is a page with those files, issues and pull requests.
+- **workflow**: A GitHub Actions automation described in a YAML file under `.github/workflows/`. It names the events that start it and the jobs it runs.
+- **JSON**: A plain-text format for structured data: objects `{ "name": "value" }`, lists `[1, 2]`, texts in double quotes, numbers, `true`, `false`, `null`. It has no comments.
+- **variable**: A name for a place that holds a value which can be used later in the code.
+- **linter**: A program that reads code without running it and reports likely mistakes or rule breaks.
+- **Terraform**: A tool that creates cloud resources from files that describe them.
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 Fix 5 of the lab. The vulnerable `pr-build.yml` had `DEPLOY_TOKEN` as a stored secret in the job's environment, where a stranger's code could read it. The hardened `deploy.yml` stores nothing. The cloud will give credentials only to a job that GitHub says belongs to this repository's `production` environment, and that environment needs a human approval first.

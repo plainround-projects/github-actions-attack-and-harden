@@ -4,6 +4,33 @@
 
 `gh` is GitHub's official command-line program. After you sign in once (`gh auth login`), it sends requests to GitHub for you. `gh api PATH` sends any request to GitHub's REST API.
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **SHA**: A family of hash functions. A Git **commit SHA** is a 40-character hexadecimal fingerprint that names one exact commit.
+- **commit**: A saved snapshot of a project's files in Git, with a message and an author. Every commit has a unique 40-character name (its SHA).
+- **branch**: A movable name for a line of commits in Git. `main` is the usual name of the primary line.
+- **tag**: A name attached to a commit in Git, usually a version such as `v1.0.0`. Unlike a commit's SHA, a tag can be moved to another commit.
+- **pull request**: A proposal on GitHub to merge the commits of one branch into another. People review it and automation checks it before it is merged.
+- **fork**: Your own copy of someone else's repository on GitHub. Strangers propose changes by changing their fork and opening a pull request from it.
+- **repository**: A project's folder of files together with its complete history of changes. On GitHub, a repository is a page with those files, issues and pull requests.
+- **workflow**: A GitHub Actions automation described in a YAML file under `.github/workflows/`. It names the events that start it and the jobs it runs.
+- **API**: Application programming interface: a set of requests a program can send to another program or service, with documented answers. A web API is called over the internet with HTTP.
+- **HTTP**: The protocol (agreed rules) that web browsers and servers use to talk. A request names a **method** (`GET` to read, `POST` to create, `PATCH` to change part, `PUT` to replace, `DELETE` to remove) and an address; the answer carries a **status code** (200 means success, 404 not found, 500 server problem).
+- **JSON**: A plain-text format for structured data: objects `{ "name": "value" }`, lists `[1, 2]`, texts in double quotes, numbers, `true`, `false`, `null`. It has no comments.
+- **list**: An ordered collection of values written one after another.
+- **string**: A piece of text in a program.
+- **boolean**: A value that is either true or false.
+- **ARN**: Amazon Resource Name: a unique text address for one thing in AWS, such as `arn:aws:s3:::my-bucket`.
+- **version**: A number such as `1.2.3` that names one release of software (major.minor.patch).
+- **Terraform**: A tool that creates cloud resources from files that describe them.
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 The hardened workflows assume settings that live on GitHub, not in files: the default token is read-only, actions must be pinned, outside contributors need approval, and a `production` environment exists with a required reviewer. `scripts/github-settings.sh` sets them with `gh` so the setup is written down and repeatable, and `scripts/set-variables.sh` publishes Terraform outputs as repository variables. Both have a dry-run mode.

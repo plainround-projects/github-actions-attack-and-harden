@@ -6,6 +6,25 @@ Prettier is a **code formatter**. It reads a source file, throws away how the or
 
 Prettier handles many file types. In this repository it formats TypeScript, JavaScript, JSON and YAML. It is separate from ESLint: ESLint looks for mistakes and rule breaks, Prettier only decides where spaces and line breaks go.
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **exit code**: A number a program leaves behind when it ends. 0 means success; any other number means failure. Build systems read it to decide whether a step passed.
+- **repository**: A project's folder of files together with its complete history of changes. On GitHub, a repository is a page with those files, issues and pull requests.
+- **CI**: Continuous integration: running checks (build, tests, linters) automatically every time code changes.
+- **JSON**: A plain-text format for structured data: objects `{ "name": "value" }`, lists `[1, 2]`, texts in double quotes, numbers, `true`, `false`, `null`. It has no comments.
+- **YAML**: A plain-text format for structured data that uses indentation instead of braces. GitHub workflows are YAML files.
+- **function**: A named piece of code that takes inputs (parameters), does something, and may return a result.
+- **list**: An ordered collection of values written one after another.
+- **formatter**: A program that rewrites code so its layout (spaces, line breaks) follows one fixed style, without changing what the code does.
+- **Terraform**: A tool that creates cloud resources from files that describe them.
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 A formatter makes the style a machine's job. CI runs `prettier --check`, which fails when any file is not already formatted, so unformatted code cannot be merged, and `make format` fixes everything in one command.

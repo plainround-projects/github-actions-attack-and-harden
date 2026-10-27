@@ -8,6 +8,28 @@ The rules live in a file, `.github/labeler.yml`: for each label, a list of file 
 
 It is a good teaching example because of a design problem: to label a pull request from a **fork**, the workflow needs write access, which `pull_request` does not give to fork code. The usual answer is `pull_request_target`, which is dangerous when mixed with a checkout of the pull request. The labeler solves this safely: it never needs the pull request's files, only their **names**, which it reads through the GitHub API.
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **glob**: A pattern for file names with wildcards: `*` matches any characters inside one name, `**` matches across folders, `?` matches one character. `src/**/*.ts` means every `.ts` file below `src`.
+- **SHA**: A family of hash functions. A Git **commit SHA** is a 40-character hexadecimal fingerprint that names one exact commit.
+- **commit**: A saved snapshot of a project's files in Git, with a message and an author. Every commit has a unique 40-character name (its SHA).
+- **branch**: A movable name for a line of commits in Git. `main` is the usual name of the primary line.
+- **tag**: A name attached to a commit in Git, usually a version such as `v1.0.0`. Unlike a commit's SHA, a tag can be moved to another commit.
+- **repository**: A project's folder of files together with its complete history of changes. On GitHub, a repository is a page with those files, issues and pull requests.
+- **workflow**: A GitHub Actions automation described in a YAML file under `.github/workflows/`. It names the events that start it and the jobs it runs.
+- **API**: Application programming interface: a set of requests a program can send to another program or service, with documented answers. A web API is called over the internet with HTTP.
+- **Markdown**: A plain-text way to write formatted documents: `#` for headings, `-` for bullets, backticks for code, `|` for tables.
+- **list**: An ordered collection of values written one after another.
+- **folder**: A container for files and other folders on disk (also called a directory).
+- **version**: A number such as `1.2.3` that names one release of software (major.minor.patch).
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 It is the hardened form of lab attack 3 (the `label.yml` job that carried a read-write token it did not need) and the demonstration that `pull_request_target` can be used safely when no checkout happens and the token has exactly the right two scopes.

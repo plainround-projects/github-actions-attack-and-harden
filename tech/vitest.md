@@ -21,6 +21,42 @@ it("keeps an ordinary title as it is", () => {
 
 **Coverage** answers "which lines of my code did the tests actually run?". The package `@vitest/coverage-v8` uses counters built into V8, the JavaScript engine inside Node.js, to record which pieces of code ran, and then reports percentages.
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **shell**: The program inside a terminal that reads what you type and starts other programs. Bash is a shell.
+- **pipe**: The `|` symbol between two commands: the output of the first becomes the input of the second.
+- **hash**: A fixed-length fingerprint computed from some data. The same data always gives the same hash; any change gives a different one. SHA-256 and SHA-1 are two ways of computing one.
+- **SHA**: A family of hash functions. A Git **commit SHA** is a 40-character hexadecimal fingerprint that names one exact commit.
+- **commit**: A saved snapshot of a project's files in Git, with a message and an author. Every commit has a unique 40-character name (its SHA).
+- **branch**: A movable name for a line of commits in Git. `main` is the usual name of the primary line.
+- **fork**: Your own copy of someone else's repository on GitHub. Strangers propose changes by changing their fork and opening a pull request from it.
+- **repository**: A project's folder of files together with its complete history of changes. On GitHub, a repository is a page with those files, issues and pull requests.
+- **workflow**: A GitHub Actions automation described in a YAML file under `.github/workflows/`. It names the events that start it and the jobs it runs.
+- **secret**: A value such as a password stored in a repository's settings. Workflows can read it, but GitHub hides it in logs.
+- **CI**: Continuous integration: running checks (build, tests, linters) automatically every time code changes.
+- **HTTP**: The protocol (agreed rules) that web browsers and servers use to talk. A request names a **method** (`GET` to read, `POST` to create, `PATCH` to change part, `PUT` to replace, `DELETE` to remove) and an address; the answer carries a **status code** (200 means success, 404 not found, 500 server problem).
+- **URL**: A web address such as `https://api.github.com/zen`.
+- **JSON**: A plain-text format for structured data: objects `{ "name": "value" }`, lists `[1, 2]`, texts in double quotes, numbers, `true`, `false`, `null`. It has no comments.
+- **package**: A bundle of code someone published for others to use, installed by a package manager such as npm or pip.
+- **module**: A file, or a folder of files, that other code can load and use. In Terraform, a module is a folder of configuration used like a function.
+- **function**: A named piece of code that takes inputs (parameters), does something, and may return a result.
+- **class**: A blueprint for objects: it bundles data and the functions that work on it. `new Name(...)` or `Name(...)` makes an object from it.
+- **interface**: A description of the shape something must have: which fields and methods. Code that depends only on the interface can accept any object of that shape.
+- **array**: An ordered list of values.
+- **string**: A piece of text in a program.
+- **file path**: The written address of a file, such as `src/main.ts`; folders are separated by `/`.
+- **linter**: A program that reads code without running it and reports likely mistakes or rule breaks.
+- **compiler**: A program that translates code written in one language into another form, and checks it on the way.
+- **assert**: A statement that checks something is true and fails loudly if it is not.
+- **Terraform**: A tool that creates cloud resources from files that describe them.
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 Security tooling that is wrong is worse than none, so the parts that decide things (the workflow linter, the result validator, the trust-policy model) are tested hard: 90 tests in 10 files, with a coverage minimum that fails the build if it drops. Vitest also runs the end-to-end test that starts the real program as a separate process.

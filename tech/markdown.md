@@ -4,6 +4,30 @@
 
 Markdown is a plain-text way to write formatted documents: `#` for headings, `-` for bullets, backticks for code, `|` for tables. GitHub shows `.md` files as formatted pages. Mermaid is a text language for diagrams; GitHub draws a code block marked `mermaid` as a picture.
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **hash**: A fixed-length fingerprint computed from some data. The same data always gives the same hash; any change gives a different one. SHA-256 and SHA-1 are two ways of computing one.
+- **SHA**: A family of hash functions. A Git **commit SHA** is a 40-character hexadecimal fingerprint that names one exact commit.
+- **commit**: A saved snapshot of a project's files in Git, with a message and an author. Every commit has a unique 40-character name (its SHA).
+- **branch**: A movable name for a line of commits in Git. `main` is the usual name of the primary line.
+- **pull request**: A proposal on GitHub to merge the commits of one branch into another. People review it and automation checks it before it is merged.
+- **fork**: Your own copy of someone else's repository on GitHub. Strangers propose changes by changing their fork and opening a pull request from it.
+- **repository**: A project's folder of files together with its complete history of changes. On GitHub, a repository is a page with those files, issues and pull requests.
+- **workflow**: A GitHub Actions automation described in a YAML file under `.github/workflows/`. It names the events that start it and the jobs it runs.
+- **secret**: A value such as a password stored in a repository's settings. Workflows can read it, but GitHub hides it in logs.
+- **module**: A file, or a folder of files, that other code can load and use. In Terraform, a module is a folder of configuration used like a function.
+- **list**: An ordered collection of values written one after another.
+- **version**: A number such as `1.2.3` that names one release of software (major.minor.patch).
+- **linter**: A program that reads code without running it and reports likely mistakes or rule breaks.
+- **test**: A small program that uses your code and checks that the answer is the one you expected.
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 The documents are part of the product: the README with its proofs, an architecture description with a diagram, three decision records, a runbook for the real attacks, a review checklist and a changelog. Plain text reviewed in pull requests like code. One of them is also tested: the review checklist names exact lines of the lab files, and a test fails if those lines drift.

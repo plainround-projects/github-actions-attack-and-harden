@@ -4,6 +4,21 @@
 
 EditorConfig is a tiny settings file, `.editorconfig`, that most code editors read to apply the same basic text rules (indent size, line endings) to everyone who edits a project. It is a file format with sections named by file patterns.
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **repository**: A project's folder of files together with its complete history of changes. On GitHub, a repository is a page with those files, issues and pull requests.
+- **YAML**: A plain-text format for structured data that uses indentation instead of braces. GitHub workflows are YAML files.
+- **folder**: A container for files and other folders on disk (also called a directory).
+- **UTF-8**: The usual way of storing text as bytes, able to represent every written language.
+- **Terraform**: A tool that creates cloud resources from files that describe them.
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 Every file type here wants two-space indentation, except the Makefile, which requires a tab. `.editorconfig` tells editors so before anyone types a character. Prettier enforces the same width for the files it formats; EditorConfig covers files Prettier does not, such as the Makefile and Terraform.

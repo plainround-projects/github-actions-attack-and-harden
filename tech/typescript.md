@@ -15,6 +15,46 @@ Two facts that surprise beginners:
 
 A file ending in `.ts` is a TypeScript file. This repository's TypeScript files are all **modules**: each file is a unit that can `export` names (functions, classes, constants) for other files to `import`.
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **shell**: The program inside a terminal that reads what you type and starts other programs. Bash is a shell.
+- **environment variable**: A named piece of text that is handed to a program by whoever starts it, for example `HOME` or `CI`. Programs read them to learn about the setting they run in.
+- **stream**: A flow of data that is written or read piece by piece, such as the text a program prints.
+- **hash**: A fixed-length fingerprint computed from some data. The same data always gives the same hash; any change gives a different one. SHA-256 and SHA-1 are two ways of computing one.
+- **commit**: A saved snapshot of a project's files in Git, with a message and an author. Every commit has a unique 40-character name (its SHA).
+- **branch**: A movable name for a line of commits in Git. `main` is the usual name of the primary line.
+- **pull request**: A proposal on GitHub to merge the commits of one branch into another. People review it and automation checks it before it is merged.
+- **fork**: Your own copy of someone else's repository on GitHub. Strangers propose changes by changing their fork and opening a pull request from it.
+- **workflow**: A GitHub Actions automation described in a YAML file under `.github/workflows/`. It names the events that start it and the jobs it runs.
+- **secret**: A value such as a password stored in a repository's settings. Workflows can read it, but GitHub hides it in logs.
+- **CI**: Continuous integration: running checks (build, tests, linters) automatically every time code changes.
+- **API**: Application programming interface: a set of requests a program can send to another program or service, with documented answers. A web API is called over the internet with HTTP.
+- **URL**: A web address such as `https://api.github.com/zen`.
+- **JSON**: A plain-text format for structured data: objects `{ "name": "value" }`, lists `[1, 2]`, texts in double quotes, numbers, `true`, `false`, `null`. It has no comments.
+- **YAML**: A plain-text format for structured data that uses indentation instead of braces. GitHub workflows are YAML files.
+- **image**: A read-only package that holds everything needed to start a container: a file system plus settings. A running **container** is made from an image.
+- **package**: A bundle of code someone published for others to use, installed by a package manager such as npm or pip.
+- **module**: A file, or a folder of files, that other code can load and use. In Terraform, a module is a folder of configuration used like a function.
+- **interface**: A description of the shape something must have: which fields and methods. Code that depends only on the interface can accept any object of that shape.
+- **array**: An ordered list of values.
+- **list**: An ordered collection of values written one after another.
+- **boolean**: A value that is either true or false.
+- **server**: A program that waits for requests and answers them.
+- **client**: A program that sends requests to a server.
+- **folder**: A container for files and other folders on disk (also called a directory).
+- **encoding**: The rule that turns characters into bytes. UTF-8 is the common one.
+- **version**: A number such as `1.2.3` that names one release of software (major.minor.patch).
+- **linter**: A program that reads code without running it and reports likely mistakes or rule breaks.
+- **test**: A small program that uses your code and checks that the answer is the one you expected.
+- **Terraform**: A tool that creates cloud resources from files that describe them.
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 The lesson needs a small program to build and test, and CI tools that inspect workflow files and a cloud trust policy. Those tools handle text typed by strangers (an issue title, a result file from a build that ran untrusted code). TypeScript's strict mode makes it hard to forget a case, and the small, typed functions are easy to test. The code has four jobs:

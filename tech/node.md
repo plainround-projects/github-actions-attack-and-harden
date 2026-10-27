@@ -6,6 +6,31 @@ Node.js is a program that runs JavaScript outside a web browser. A browser can r
 
 You use it by typing `node file.js`. Node reads the file, compiles it in memory, runs it from top to bottom, then keeps running only as long as something is still waiting (a timer, a network call). When nothing is left, it exits with an **exit code**: `0` for success, anything else for failure.
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **command line**: The text you type after the prompt in a terminal to run a program, such as `npm test`. The words after the program name are its **arguments**; words that start with `-` or `--` are **options** (also called flags).
+- **process**: A program while it is running, with its own memory. Starting a program creates a process; when it ends the process is gone.
+- **stdout**: Standard output: the stream where a program writes its normal results. A **stream** is a flow of data written or read piece by piece. Standard error (`stderr`) is a second stream for problems.
+- **pull request**: A proposal on GitHub to merge the commits of one branch into another. People review it and automation checks it before it is merged.
+- **fork**: Your own copy of someone else's repository on GitHub. Strangers propose changes by changing their fork and opening a pull request from it.
+- **workflow**: A GitHub Actions automation described in a YAML file under `.github/workflows/`. It names the events that start it and the jobs it runs.
+- **runner**: The computer, usually a virtual machine, on which GitHub runs a job. It starts clean for every job.
+- **CI**: Continuous integration: running checks (build, tests, linters) automatically every time code changes.
+- **image**: A read-only package that holds everything needed to start a container: a file system plus settings. A running **container** is made from an image.
+- **library**: A package of ready-made code that your program calls.
+- **module**: A file, or a folder of files, that other code can load and use. In Terraform, a module is a folder of configuration used like a function.
+- **function**: A named piece of code that takes inputs (parameters), does something, and may return a result.
+- **variable**: A name for a place that holds a value which can be used later in the code.
+- **server**: A program that waits for requests and answers them.
+- **test**: A small program that uses your code and checks that the answer is the one you expected.
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 Everything in the repository is TypeScript, and TypeScript runs on Node. The greeter program, the test runner, the linters, the formatters and the pipeline tools are all Node programs. The `engines` field in `package.json` says `"node": ">=22.12"`, and the workflows install Node 22 with `actions/setup-node`.

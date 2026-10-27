@@ -4,6 +4,27 @@
 
 jq is a command-line tool that reads JSON text, picks parts out of it, and prints the result. Think of it as a small language for filtering JSON, the way `grep` filters lines of text. It is preinstalled on GitHub's Ubuntu runners.
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **shell**: The program inside a terminal that reads what you type and starts other programs. Bash is a shell.
+- **standard output**: The stream where a program writes its normal results (its counterpart, standard error, is for problems).
+- **hash**: A fixed-length fingerprint computed from some data. The same data always gives the same hash; any change gives a different one. SHA-256 and SHA-1 are two ways of computing one.
+- **commit**: A saved snapshot of a project's files in Git, with a message and an author. Every commit has a unique 40-character name (its SHA).
+- **pull request**: A proposal on GitHub to merge the commits of one branch into another. People review it and automation checks it before it is merged.
+- **repository**: A project's folder of files together with its complete history of changes. On GitHub, a repository is a page with those files, issues and pull requests.
+- **image**: A read-only package that holds everything needed to start a container: a file system plus settings. A running **container** is made from an image.
+- **Docker**: A tool that builds images and runs containers.
+- **variable**: A name for a place that holds a value which can be used later in the code.
+- **list**: An ordered collection of values written one after another.
+- **version**: A number such as `1.2.3` that names one release of software (major.minor.patch).
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 `pr-build.yml` must write a small JSON file, `result.json`, containing a pull request number, a commit hash and an outcome. The values come from an event that a stranger started. Building that JSON by gluing strings together would let a quote or a newline in a value break out of its field. `jq` builds the JSON itself and encodes every value correctly. The Docker image for `act` also installs `jq` so the same step runs locally.

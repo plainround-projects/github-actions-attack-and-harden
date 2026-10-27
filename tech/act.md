@@ -4,6 +4,34 @@
 
 act is a command-line tool that runs GitHub Actions workflows on your own machine. It reads the workflow YAML, starts a Docker container for each job (see `docker.md`) and runs the steps inside. It is an imitation of GitHub's runner, not an exact copy. This repository uses act 0.2.89.
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **commit**: A saved snapshot of a project's files in Git, with a message and an author. Every commit has a unique 40-character name (its SHA).
+- **pull request**: A proposal on GitHub to merge the commits of one branch into another. People review it and automation checks it before it is merged.
+- **fork**: Your own copy of someone else's repository on GitHub. Strangers propose changes by changing their fork and opening a pull request from it.
+- **workflow**: A GitHub Actions automation described in a YAML file under `.github/workflows/`. It names the events that start it and the jobs it runs.
+- **runner**: The computer, usually a virtual machine, on which GitHub runs a job. It starts clean for every job.
+- **artifact**: A file or folder that a job saves so that later jobs, or people, can download it.
+- **secret**: A value such as a password stored in a repository's settings. Workflows can read it, but GitHub hides it in logs.
+- **JSON**: A plain-text format for structured data: objects `{ "name": "value" }`, lists `[1, 2]`, texts in double quotes, numbers, `true`, `false`, `null`. It has no comments.
+- **YAML**: A plain-text format for structured data that uses indentation instead of braces. GitHub workflows are YAML files.
+- **token**: A secret text that proves who is asking when a program talks to a service, instead of a password. Tokens can be limited in what they may do and in how long they last.
+- **image**: A read-only package that holds everything needed to start a container: a file system plus settings. A running **container** is made from an image.
+- **container**: A running, isolated copy of a program together with its own files, started from an image. Containers are managed by Docker.
+- **Docker**: A tool that builds images and runs containers.
+- **variable**: A name for a place that holds a value which can be used later in the code.
+- **list**: An ordered collection of values written one after another.
+- **server**: A program that waits for requests and answers them.
+- **folder**: A container for files and other folders on disk (also called a directory).
+- **version**: A number such as `1.2.3` that names one release of software (major.minor.patch).
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 The lab must show the attacks working and the fixes holding without publishing a vulnerable repository to the internet. `act` runs the real workflow files on your computer with a fake event, so `scripts/lab.sh` can prove, line by line, that the injected command ran under the vulnerable workflow and did not under the hardened one. Two attacks (the repository default token, and OIDC with a cloud account) need GitHub itself and are not reproduced with `act`.

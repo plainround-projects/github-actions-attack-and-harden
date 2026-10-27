@@ -15,6 +15,27 @@ Words you will meet:
 
 The configuration language is HCL (see `hcl.md`).
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **checksum**: A short fingerprint computed from a file's content. If one byte changes the fingerprint changes, so comparing fingerprints shows whether a file is the one you expected.
+- **CI**: Continuous integration: running checks (build, tests, linters) automatically every time code changes.
+- **JSON**: A plain-text format for structured data: objects `{ "name": "value" }`, lists `[1, 2]`, texts in double quotes, numbers, `true`, `false`, `null`. It has no comments.
+- **HCL**: HashiCorp Configuration Language: the file format of Terraform, made of blocks and `name = value` arguments.
+- **lock file**: A file that records the exact version, and a checksum, of every package that was installed, so that everyone installs exactly the same thing.
+- **function**: A named piece of code that takes inputs (parameters), does something, and may return a result.
+- **list**: An ordered collection of values written one after another.
+- **folder**: A container for files and other folders on disk (also called a directory).
+- **ARN**: Amazon Resource Name: a unique text address for one thing in AWS, such as `arn:aws:s3:::my-bucket`.
+- **test**: A small program that uses your code and checks that the answer is the one you expected.
+- **mock**: A stand-in object used in a test in place of the real thing.
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 Fix 5 replaces a stored cloud password with a login that GitHub proves with OIDC. For that to work, something must exist in AWS: an identity provider, a role with a **trust policy** naming exactly this repository and environment, and a bucket the role may write to. Terraform writes all of that down in reviewable files, and its test feature lets the repository check the trust policy without an AWS account.

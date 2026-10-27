@@ -4,6 +4,28 @@
 
 ShellCheck is a static analyzer for shell scripts. It reads a script without running it and warns about common mistakes: unquoted variables, commands that may not do what they look like, features that your shell does not have. Each warning has a code such as `SC2086`. This repository uses version 0.11.0.
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **shell**: The program inside a terminal that reads what you type and starts other programs. Bash is a shell.
+- **glob**: A pattern for file names with wildcards: `*` matches any characters inside one name, `**` matches across folders, `?` matches one character. `src/**/*.ts` means every `.ts` file below `src`.
+- **repository**: A project's folder of files together with its complete history of changes. On GitHub, a repository is a page with those files, issues and pull requests.
+- **workflow**: A GitHub Actions automation described in a YAML file under `.github/workflows/`. It names the events that start it and the jobs it runs.
+- **runner**: The computer, usually a virtual machine, on which GitHub runs a job. It starts clean for every job.
+- **image**: A read-only package that holds everything needed to start a container: a file system plus settings. A running **container** is made from an image.
+- **package**: A bundle of code someone published for others to use, installed by a package manager such as npm or pip.
+- **variable**: A name for a place that holds a value which can be used later in the code.
+- **array**: An ordered list of values.
+- **list**: An ordered collection of values written one after another.
+- **version**: A number such as `1.2.3` that names one release of software (major.minor.patch).
+- **compiler**: A program that translates code written in one language into another form, and checks it on the way.
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 This repository has shell scripts that change repository settings and handle names and refs, so quoting mistakes matter. ShellCheck is the tool that spots them. Be precise about how it is wired in here: `make lint` does **not** run `shellcheck` on `scripts/*.sh` directly. ShellCheck reaches the repository in two ways: `actionlint` calls it (when it is on the `PATH`) to check the shell code inside workflow `run:` blocks, and it is installed in the `act` runner image. Running it on the scripts by hand is clean (see below).

@@ -4,6 +4,22 @@
 
 YAML is a text format for structured data: lists, named values, and nests of both. People read and write it easily and programs parse it. It is a **file format**, not a language that runs. Every workflow, action definition and Dependabot setting in this repository is YAML (`.yml`).
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **SHA**: A family of hash functions. A Git **commit SHA** is a 40-character hexadecimal fingerprint that names one exact commit.
+- **package**: A bundle of code someone published for others to use, installed by a package manager such as npm or pip.
+- **list**: An ordered collection of values written one after another.
+- **string**: A piece of text in a program.
+- **version**: A number such as `1.2.3` that names one release of software (major.minor.patch).
+- **linter**: A program that reads code without running it and reports likely mistakes or rule breaks.
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 Every workflow, the labeler rules, the Dependabot configuration and the stand-in actions are YAML. The attacks themselves are partly YAML facts: the lab note in `exploit/vulnerable/.github/workflows/greet.yml` explains that the lesson's one-line `run: echo "New issue: ..."` is not even valid YAML, and the hardened workflows lean on block text and on quoting. A reader who does not know the rules cannot tell which line of a workflow is a command and which is a value.

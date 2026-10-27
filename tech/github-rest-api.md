@@ -11,6 +11,24 @@ Words:
 - **Status code**: a number in the answer. `2xx` means success, `4xx` means the request was wrong (401 not signed in, 403 forbidden, 404 not found, 422 bad data), `5xx` means GitHub had a problem.
 - **Token**: the credential. In a workflow it is `${{ github.token }}` (the same value as `secrets.GITHUB_TOKEN`), limited by the job's `permissions`.
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **API**: Application programming interface: a set of requests a program can send to another program or service, with documented answers. A web API is called over the internet with HTTP.
+- **HTTP**: The protocol (agreed rules) that web browsers and servers use to talk. A request names a **method** (`GET` to read, `POST` to create, `PATCH` to change part, `PUT` to replace, `DELETE` to remove) and an address; the answer carries a **status code** (200 means success, 404 not found, 500 server problem).
+- **JSON**: A plain-text format for structured data: objects `{ "name": "value" }`, lists `[1, 2]`, texts in double quotes, numbers, `true`, `false`, `null`. It has no comments.
+- **Markdown**: A plain-text way to write formatted documents: `#` for headings, `-` for bullets, backticks for code, `|` for tables.
+- **function**: A named piece of code that takes inputs (parameters), does something, and may return a result.
+- **class**: A blueprint for objects: it bundles data and the functions that work on it. `new Name(...)` or `Name(...)` makes an object from it.
+- **version**: A number such as `1.2.3` that names one release of software (major.minor.patch).
+- **test**: A small program that uses your code and checks that the answer is the one you expected.
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 After a pull request is built (with no privileges), `pr-report.yml` has to tell the author the result. Posting a comment is an API call. The code is small and written from scratch in `pipeline/github-comments.ts` so every part is visible: how it authenticates, what it sends, how it retries, and what it refuses.

@@ -17,6 +17,25 @@ A role has two kinds of policy, and mixing them up is the most common confusion:
 | **Trust policy** (`assume_role_policy`) | *Who may become this role?* | `aws_iam_role.deploy` |
 | **Permissions policy** | *What may the role do once someone is it?* | `aws_iam_role_policy.deploy` |
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **regex**: Short for regular expression: a compact pattern that describes text, such as `^[0-9]{12}$` (exactly twelve digits).
+- **repository**: A project's folder of files together with its complete history of changes. On GitHub, a repository is a page with those files, issues and pull requests.
+- **URL**: A web address such as `https://api.github.com/zen`.
+- **JSON**: A plain-text format for structured data: objects `{ "name": "value" }`, lists `[1, 2]`, texts in double quotes, numbers, `true`, `false`, `null`. It has no comments.
+- **token**: A secret text that proves who is asking when a program talks to a service, instead of a password. Tokens can be limited in what they may do and in how long they last.
+- **module**: A file, or a folder of files, that other code can load and use. In Terraform, a module is a folder of configuration used like a function.
+- **list**: An ordered collection of values written one after another.
+- **test**: A small program that uses your code and checks that the answer is the one you expected.
+- **Terraform**: A tool that creates cloud resources from files that describe them.
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 The deploy job needs to put files in one bucket. IAM is how that is allowed narrowly: a role that only a particular GitHub job can assume (the trust policy) and that can do only a few things in a single place (the permissions policy). This is the **principle of least privilege**: give only what is needed.

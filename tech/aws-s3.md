@@ -12,6 +12,26 @@ Properties worth knowing:
 - **Server-side encryption** encrypts objects at rest (`AES256` is S3's own managed key).
 - You pay for storage and requests.
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **shell**: The program inside a terminal that reads what you type and starts other programs. Bash is a shell.
+- **commit**: A saved snapshot of a project's files in Git, with a message and an author. Every commit has a unique 40-character name (its SHA).
+- **repository**: A project's folder of files together with its complete history of changes. On GitHub, a repository is a page with those files, issues and pull requests.
+- **container**: A running, isolated copy of a program together with its own files, started from an image. Containers are managed by Docker.
+- **variable**: A name for a place that holds a value which can be used later in the code.
+- **list**: An ordered collection of values written one after another.
+- **file path**: The written address of a file, such as `src/main.ts`; folders are separated by `/`.
+- **folder**: A container for files and other folders on disk (also called a directory).
+- **version**: A number such as `1.2.3` that names one release of software (major.minor.patch).
+- **Terraform**: A tool that creates cloud resources from files that describe them.
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 The deploy job needs somewhere to put the build. A bucket is the simplest possible target, and it makes the least-privilege story concrete: the role may write only under `releases/` in this one bucket.

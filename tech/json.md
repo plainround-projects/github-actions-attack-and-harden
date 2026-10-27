@@ -13,6 +13,34 @@ JSON (JavaScript Object Notation) is a plain-text format for structured data. It
 
 That is all. JSON has **no comments**, no trailing commas and no single quotes. Almost every programming language and every web service can read and write it, which is why it is the common exchange format.
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **command line**: The text you type after the prompt in a terminal to run a program, such as `npm test`. The words after the program name are its **arguments**; words that start with `-` or `--` are **options** (also called flags).
+- **shell**: The program inside a terminal that reads what you type and starts other programs. Bash is a shell.
+- **environment variable**: A named piece of text that is handed to a program by whoever starts it, for example `HOME` or `CI`. Programs read them to learn about the setting they run in.
+- **hash**: A fixed-length fingerprint computed from some data. The same data always gives the same hash; any change gives a different one. SHA-256 and SHA-1 are two ways of computing one.
+- **commit**: A saved snapshot of a project's files in Git, with a message and an author. Every commit has a unique 40-character name (its SHA).
+- **branch**: A movable name for a line of commits in Git. `main` is the usual name of the primary line.
+- **pull request**: A proposal on GitHub to merge the commits of one branch into another. People review it and automation checks it before it is merged.
+- **fork**: Your own copy of someone else's repository on GitHub. Strangers propose changes by changing their fork and opening a pull request from it.
+- **repository**: A project's folder of files together with its complete history of changes. On GitHub, a repository is a page with those files, issues and pull requests.
+- **workflow**: A GitHub Actions automation described in a YAML file under `.github/workflows/`. It names the events that start it and the jobs it runs.
+- **secret**: A value such as a password stored in a repository's settings. Workflows can read it, but GitHub hides it in logs.
+- **API**: Application programming interface: a set of requests a program can send to another program or service, with documented answers. A web API is called over the internet with HTTP.
+- **package**: A bundle of code someone published for others to use, installed by a package manager such as npm or pip.
+- **lock file**: A file that records the exact version, and a checksum, of every package that was installed, so that everyone installs exactly the same thing.
+- **variable**: A name for a place that holds a value which can be used later in the code.
+- **list**: An ordered collection of values written one after another.
+- **version**: A number such as `1.2.3` that names one release of software (major.minor.patch).
+- **compiler**: A program that translates code written in one language into another form, and checks it on the way.
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 Many things here are JSON: the project descriptions (`package.json`, `package-lock.json`, `tsconfig.json`), the Prettier settings, the fake event payloads that GitHub would send, the result file passed between workflows, the plan Terraform produces, and the answers of the GitHub API. Each is a place where data crosses a boundary, so each is a place to be careful.

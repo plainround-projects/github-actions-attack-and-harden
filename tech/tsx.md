@@ -9,6 +9,31 @@ Two things to know:
 - It does **not** check types. It only removes them. Type checking is still `tsc --noEmit`.
 - The name has nothing to do with React's `.tsx` file extension, although the two look alike.
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **command line**: The text you type after the prompt in a terminal to run a program, such as `npm test`. The words after the program name are its **arguments**; words that start with `-` or `--` are **options** (also called flags).
+- **process**: A program while it is running, with its own memory. Starting a program creates a process; when it ends the process is gone.
+- **branch**: A movable name for a line of commits in Git. `main` is the usual name of the primary line.
+- **pull request**: A proposal on GitHub to merge the commits of one branch into another. People review it and automation checks it before it is merged.
+- **repository**: A project's folder of files together with its complete history of changes. On GitHub, a repository is a page with those files, issues and pull requests.
+- **workflow**: A GitHub Actions automation described in a YAML file under `.github/workflows/`. It names the events that start it and the jobs it runs.
+- **artifact**: A file or folder that a job saves so that later jobs, or people, can download it.
+- **CI**: Continuous integration: running checks (build, tests, linters) automatically every time code changes.
+- **JSON**: A plain-text format for structured data: objects `{ "name": "value" }`, lists `[1, 2]`, texts in double quotes, numbers, `true`, `false`, `null`. It has no comments.
+- **container**: A running, isolated copy of a program together with its own files, started from an image. Containers are managed by Docker.
+- **version**: A number such as `1.2.3` that names one release of software (major.minor.patch).
+- **linter**: A program that reads code without running it and reports likely mistakes or rule breaks.
+- **compiler**: A program that translates code written in one language into another form, and checks it on the way.
+- **test**: A small program that uses your code and checks that the answer is the one you expected.
+- **Terraform**: A tool that creates cloud resources from files that describe them.
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 The tools in `pipeline/` run in CI many times a day: the workflow linter, the result poster, the trust-policy checker. Compiling them first would add a build step and a folder of generated files to every job. `tsx` runs them as they are.

@@ -4,6 +4,26 @@
 
 Docker runs programs in **containers**: isolated processes that see their own file system, their own installed software and their own network view, while sharing the computer's kernel. A container starts from an **image**, a packaged, read-only snapshot of a file system. A **Dockerfile** is the text recipe that builds an image, one instruction per layer. On a Mac, Docker Desktop runs a small Linux virtual machine and all containers live inside it.
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **process**: A program while it is running, with its own memory. Starting a program creates a process; when it ends the process is gone.
+- **repository**: A project's folder of files together with its complete history of changes. On GitHub, a repository is a page with those files, issues and pull requests.
+- **workflow**: A GitHub Actions automation described in a YAML file under `.github/workflows/`. It names the events that start it and the jobs it runs.
+- **library**: A package of ready-made code that your program calls.
+- **module**: A file, or a folder of files, that other code can load and use. In Terraform, a module is a folder of configuration used like a function.
+- **variable**: A name for a place that holds a value which can be used later in the code.
+- **list**: An ordered collection of values written one after another.
+- **client**: A program that sends requests to a server.
+- **folder**: A container for files and other folders on disk (also called a directory).
+- **compiler**: A program that translates code written in one language into another form, and checks it on the way.
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 `act` runs each workflow job inside a container that stands in for GitHub's `ubuntu-latest` runner. This repository builds its own small image for that, so the lab does not depend on a multi-gigabyte public image and so the exact tools are written down. Docker is needed only for `make run` (the attacks and fixes); `make check` needs no Docker.

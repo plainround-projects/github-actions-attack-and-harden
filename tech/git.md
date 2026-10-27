@@ -4,6 +4,26 @@
 
 Git is a version-control system. It records snapshots of a folder (**commits**) so you can see history, undo mistakes and share work. A **repository** is the folder plus its history in a hidden `.git` folder. A **commit** has a 40-character fingerprint, its **SHA**, computed from its contents, its message and its parent commit. A **tag** is a name attached to a commit. A **branch** is a name that moves forward as you commit. `.gitignore` lists files Git must not track.
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **pull request**: A proposal on GitHub to merge the commits of one branch into another. People review it and automation checks it before it is merged.
+- **fork**: Your own copy of someone else's repository on GitHub. Strangers propose changes by changing their fork and opening a pull request from it.
+- **workflow**: A GitHub Actions automation described in a YAML file under `.github/workflows/`. It names the events that start it and the jobs it runs.
+- **token**: A secret text that proves who is asking when a program talks to a service, instead of a password. Tokens can be limited in what they may do and in how long they last.
+- **lock file**: A file that records the exact version, and a checksum, of every package that was installed, so that everyone installs exactly the same thing.
+- **list**: An ordered collection of values written one after another.
+- **folder**: A container for files and other folders on disk (also called a directory).
+- **version**: A number such as `1.2.3` that names one release of software (major.minor.patch).
+- **linter**: A program that reads code without running it and reports likely mistakes or rule breaks.
+- **Terraform**: A tool that creates cloud resources from files that describe them.
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 A large part of the lesson is about what Git names mean. A tag such as `v7.0.1` can be moved by its owner; a commit's 40-character SHA cannot. That is why every action here is pinned to a SHA. Git also keeps secrets out (through `.gitignore`), and the checkout step can leave a token inside `.git/config` unless told not to.

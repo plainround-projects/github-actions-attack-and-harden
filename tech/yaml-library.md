@@ -9,6 +9,22 @@
 
 Position matters for a linter. A message such as `greet.yml:14: error ...` is only useful if it names the line.
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **regular expression**: A compact pattern that describes text, such as `^[0-9]{12}$` (exactly twelve digits). Tools use them to find or check text. Often shortened to **regex**.
+- **repository**: A project's folder of files together with its complete history of changes. On GitHub, a repository is a page with those files, issues and pull requests.
+- **workflow**: A GitHub Actions automation described in a YAML file under `.github/workflows/`. It names the events that start it and the jobs it runs.
+- **JSON**: A plain-text format for structured data: objects `{ "name": "value" }`, lists `[1, 2]`, texts in double quotes, numbers, `true`, `false`, `null`. It has no comments.
+- **package**: A bundle of code someone published for others to use, installed by a package manager such as npm or pip.
+- **string**: A piece of text in a program.
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 `pipeline/harden-lint.ts` must understand workflow files to find unsafe patterns. Reading them with a regular expression would be fragile (`on:` can be a string, a list or a map; `permissions` can be a word or a table). A real parser gives the same structure GitHub sees, and the tree gives line numbers for the findings.

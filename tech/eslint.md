@@ -12,6 +12,26 @@ Terms:
 - **typescript-eslint**: a plugin that lets ESLint read TypeScript and adds TypeScript-specific rules.
 - **`@eslint/js`**: ESLint's own recommended JavaScript rules.
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **command line**: The text you type after the prompt in a terminal to run a program, such as `npm test`. The words after the program name are its **arguments**; words that start with `-` or `--` are **options** (also called flags).
+- **glob**: A pattern for file names with wildcards: `*` matches any characters inside one name, `**` matches across folders, `?` matches one character. `src/**/*.ts` means every `.ts` file below `src`.
+- **regular expression**: A compact pattern that describes text, such as `^[0-9]{12}$` (exactly twelve digits). Tools use them to find or check text. Often shortened to **regex**.
+- **repository**: A project's folder of files together with its complete history of changes. On GitHub, a repository is a page with those files, issues and pull requests.
+- **CI**: Continuous integration: running checks (build, tests, linters) automatically every time code changes.
+- **package**: A bundle of code someone published for others to use, installed by a package manager such as npm or pip.
+- **function**: A named piece of code that takes inputs (parameters), does something, and may return a result.
+- **variable**: A name for a place that holds a value which can be used later in the code.
+- **array**: An ordered list of values.
+- **folder**: A container for files and other folders on disk (also called a directory).
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 Two reasons. First, ordinary code hygiene. Second, and more interesting, the layer rules of the application are written as lint rules: the domain code may not import from infrastructure, application code may not import from interfaces, and so on. A wrong import fails the build instead of waiting for a reviewer to notice.

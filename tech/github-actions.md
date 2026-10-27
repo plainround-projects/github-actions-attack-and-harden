@@ -23,6 +23,31 @@ The vocabulary, from the outside in:
 
 This repository is about the dangerous side of all of that. Each part can be set up in a way that lets a stranger on the internet use the repository's own power. The lab shows three mistakes on purpose, then fixes them.
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **hash**: A fixed-length fingerprint computed from some data. The same data always gives the same hash; any change gives a different one. SHA-256 and SHA-1 are two ways of computing one.
+- **commit**: A saved snapshot of a project's files in Git, with a message and an author. Every commit has a unique 40-character name (its SHA).
+- **branch**: A movable name for a line of commits in Git. `main` is the usual name of the primary line.
+- **tag**: A name attached to a commit in Git, usually a version such as `v1.0.0`. Unlike a commit's SHA, a tag can be moved to another commit.
+- **API**: Application programming interface: a set of requests a program can send to another program or service, with documented answers. A web API is called over the internet with HTTP.
+- **JSON**: A plain-text format for structured data: objects `{ "name": "value" }`, lists `[1, 2]`, texts in double quotes, numbers, `true`, `false`, `null`. It has no comments.
+- **YAML**: A plain-text format for structured data that uses indentation instead of braces. GitHub workflows are YAML files.
+- **package**: A bundle of code someone published for others to use, installed by a package manager such as npm or pip.
+- **list**: An ordered collection of values written one after another.
+- **folder**: A container for files and other folders on disk (also called a directory).
+- **version**: A number such as `1.2.3` that names one release of software (major.minor.patch).
+- **linter**: A program that reads code without running it and reports likely mistakes or rule breaks.
+- **compiler**: A program that translates code written in one language into another form, and checks it on the way.
+- **test**: A small program that uses your code and checks that the answer is the one you expected.
+- **Terraform**: A tool that creates cloud resources from files that describe them.
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 The task is "attack and harden": show how a workflow is exploited, then change it so the same attack fails. That needs real workflows with real triggers. The lab files in `exploit/vulnerable/` are the weak versions; the files in `.github/workflows/` are the hardened versions. Both sets listen to the same events, so you can compare them line by line.

@@ -4,6 +4,24 @@
 
 Dependabot is a GitHub service that opens pull requests to update your dependencies when new versions come out. You configure it with a YAML file. It can watch GitHub Actions versions, npm packages, Terraform providers and many other kinds.
 
+<!-- words -->
+
+<details>
+<summary><b>Words this note uses, in case they are new to you</b> (click to open)</summary>
+
+- **pull request**: A proposal on GitHub to merge the commits of one branch into another. People review it and automation checks it before it is merged.
+- **repository**: A project's folder of files together with its complete history of changes. On GitHub, a repository is a page with those files, issues and pull requests.
+- **CI**: Continuous integration: running checks (build, tests, linters) automatically every time code changes.
+- **YAML**: A plain-text format for structured data that uses indentation instead of braces. GitHub workflows are YAML files.
+- **package**: A bundle of code someone published for others to use, installed by a package manager such as npm or pip.
+- **dependency**: A package that your project needs in order to work.
+- **module**: A file, or a folder of files, that other code can load and use. In Terraform, a module is a folder of configuration used like a function.
+- **Terraform**: A tool that creates cloud resources from files that describe them.
+
+</details>
+
+<!-- /words -->
+
 ## Why this repository uses it
 
 Pinning makes updates something you must do on purpose: every action is a 40-character SHA and every npm package an exact version. Dependabot proposes those updates as pull requests so they are reviewed, not forgotten. For the actions, it reads the `# v7.0.1` comment next to a SHA, finds the newer release and changes both. Three ecosystems are watched.
