@@ -8,6 +8,7 @@ A repository that was deliberately vulnerable, hardened: shell injection through
 | **Planned hours** | 12 |
 | **Level** | Advanced |
 | **Architecture** | [ARCHITECTURE.md](ARCHITECTURE.md), decisions in [docs/adr](docs/adr), the real-GitHub steps in [docs/runbook.md](docs/runbook.md) |
+| **Technology notes** | [tech/README.md](tech/README.md): one beginner-level note for every technology used here |
 
 This repository is the **hardened** version. The lesson's three vulnerable workflows are in [`exploit/vulnerable/.github/workflows/`](exploit/vulnerable/.github/workflows), outside `.github/`, so they are lab files that never run on GitHub by themselves. Use them only in repositories you own, with a second account you own and a throwaway cloud account with a budget.
 
@@ -170,6 +171,7 @@ infra/
   environments/demo/          the composition, offline.tfvars, demo.tfvars.example and a README.
 scripts/             lab.sh (make run), github-settings.sh, set-variables.sh, install-actionlint.sh.
 docs/                review-checklist.md, runbook.md, adr/ (three decision records).
+tech/                one beginner-level note per technology used here (start at tech/README.md).
 ci/act-runner/       the Dockerfile of the image act uses as ubuntu-latest.
 ```
 
