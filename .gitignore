@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.env
+.DS_Store
+logs/
+.omc/
+.terraform/
+*.tfstate
+*.tfstate.*
+plan.bin
+plan.json
+demo.tfvars
+.tools/

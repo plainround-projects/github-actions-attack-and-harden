@@ -1,0 +1,9 @@
+dist/
+build/
+coverage/
+node_modules/
+package-lock.json
+exploit/
+infra/
+*.tfvars
+*.md
