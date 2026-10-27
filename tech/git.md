@@ -71,6 +71,29 @@ Each line is a pattern for paths Git should pretend not to see. Dependencies and
 
 `aws s3 sync dist "s3://${BUCKET}/releases/${GITHUB_SHA}/"`: `GITHUB_SHA` is the commit that triggered the run. Every release lands in a folder named by its exact commit.
 
+### `.gitignore`, every line
+
+```text
+node_modules/      # downloaded packages; rebuilt by npm ci
+dist/              # compiled output of npm run build
+build/             # the lab's logs and fork copies (scripts/lab.sh)
+coverage/          # coverage reports
+*.tsbuildinfo      # TypeScript's incremental-build notes
+.env               # your own local settings and secrets
+.DS_Store          # macOS folder metadata
+logs/              # log files
+.omc/              # local tool state
+.terraform/        # provider files downloaded by terraform init
+*.tfstate          # Terraform's record of real resources (can contain secrets)
+*.tfstate.*        # backups of the state
+plan.bin           # a saved Terraform plan
+plan.json          # the same plan as JSON
+demo.tfvars        # your real values for the demo environment
+.tools/            # the actionlint binary installed by scripts/install-actionlint.sh
+```
+
+(The real file has no comments; they are added here.) A line ending in `/` matches a folder. `*` matches any characters within a name. A path that matches is not tracked, not shown by `git status`, and not committed by `git add .`. Ignoring only affects files that are not yet tracked; a file already committed stays tracked.
+
 ## Try it yourself
 
 1. `git log --oneline | head -3` shows the latest commits with short SHAs.

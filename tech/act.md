@@ -63,6 +63,65 @@ The fix run uses `pull_request`, no `-s`, and swaps the pinned `upload-artifact`
 
 `act` does not enforce `permissions`, does not run environments with approvals, cannot obtain an OIDC token, and does not know the repository's default token setting. Attacks 3 and 5 therefore need real GitHub, and the README records them as such.
 
+### The two stand-in actions
+
+An **action** defined inside a repository is a folder with a file named `action.yml`. A **composite action** (`runs.using: composite`) is an action made only of steps. `act`'s `--local-repository` swaps these in for real actions.
+
+`exploit/stubs/fork-checkout/action.yml`:
+
+```yaml
+name: Check out the fork (lab stand-in)
+description: The workspace already holds the fork's files; report it as a checkout would.
+inputs:
+  ref:
+    description: Ignored; the lab always "checks out" the fork.
+    required: false
+    default: ""
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        echo "checked out the fork's head commit (lab stand-in; the workspace is the fork's copy)"
+```
+
+`name` and `description` are labels. `inputs:` lists the settings a caller may give with `with:`; this action accepts `ref` (the vulnerable workflow passes one) and ignores it. `required: false` and `default: ""` make it optional. `runs.using: composite` says the action is a list of steps. A step in a composite action must say which `shell` runs its `run:` text (here `bash`). It only prints a sentence, because the lab already put the fork's files in the workspace.
+
+`exploit/stubs/upload-artifact/action.yml` stands in for `actions/upload-artifact`:
+
+```yaml
+inputs:
+  name:               { description: Artifact name.,   required: true }
+  path:               { description: Files to upload, one per line., required: true }
+  retention-days:     { description: Retention in days., required: false, default: "" }
+  if-no-files-found:  { description: warn, error or ignore., required: false, default: warn }
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        ARTIFACT_NAME: ${{ inputs.name }}
+        ARTIFACT_PATHS: ${{ inputs.path }}
+        ARTIFACT_RETENTION: ${{ inputs.retention-days }}
+        ARTIFACT_IF_MISSING: ${{ inputs.if-no-files-found }}
+      run: |
+        missing=0
+        while IFS= read -r file; do
+          [ -n "$file" ] || continue
+          if [ -e "$file" ]; then
+            echo "artifact ${ARTIFACT_NAME}: ${file} ($(wc -c < "$file" | tr -d ' ') bytes), expires in ${ARTIFACT_RETENTION:-90} days"
+          else
+            echo "artifact ${ARTIFACT_NAME}: ${file} is missing"
+            missing=1
+          fi
+        done <<< "$ARTIFACT_PATHS"
+        if [ "$missing" = 1 ] && [ "$ARTIFACT_IF_MISSING" = error ]; then
+          exit 1
+        fi
+```
+
+(The real file writes each input on several lines; the content is the same.) The four inputs mirror the real action's. The step passes inputs to the script as environment variables (the same safe pattern as the hardened workflows; `${{ inputs.name }}` is the value given by `with:`). The script: `missing=0` is a flag. `while IFS= read -r file; do ... done <<< "$ARTIFACT_PATHS"` reads the path list one line at a time (`IFS=` keeps leading spaces, `-r` keeps backslashes; `<<<` feeds a text to the loop as input). `[ -n "$file" ] || continue` skips empty lines (`-n` means "not empty"; `||` runs the right side if the left failed). `[ -e "$file" ]` is true if the file exists. `wc -c < "$file"` counts bytes; `tr -d ' '` removes spaces from the number. `${ARTIFACT_RETENTION:-90}` means "the variable, or 90 if empty". At the end, if a file was missing **and** `if-no-files-found` is `error`, exit with code 1 so the job fails, like the real action. This is why `pr-build.yml`'s `if-no-files-found: error` is still enforced under `act`.
+
 ## Try it yourself
 
 1. `act --version` prints the version (checked with 0.2.89 for this repository).

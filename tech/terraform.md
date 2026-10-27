@@ -145,6 +145,80 @@ variable "github_repository" {
 
 `make check-trust` runs `terraform show -json plan.bin > plan.json` and then `pipeline/check-trust-cli.ts`, which reads the role's rendered trust policy out of the plan and tries eight sample tokens against it (see `oidc.md`).
 
+### Every other Terraform file, one by one
+
+**The demo environment's inputs, `infra/environments/demo/variables.tf`.** A `variable` block declares an input. Its `type` says what kind of value it takes; `default` is used when no value is given; `description` documents it.
+
+| Variable | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `region` | string | `"us-east-1"` | The AWS region (a geographic location with its own data centres) in which to create resources. |
+| `aws_account_id` | string | none (required) | The 12-digit number that names your AWS account. It goes into the identity provider's ARN. |
+| `github_repository` | string | none (required) | `OWNER/NAME` of the repository whose `production` environment may deploy. |
+| `environment` | string | `"production"` | The GitHub environment a deploy job must run in. |
+| `bucket_name` | string | none (required) | The globally unique name of the release bucket. |
+| `create_oidc_provider` | bool | `true` | Whether to create the account's GitHub identity provider; set `false` if the account already has one. |
+| `offline` | bool | `false` | When `true`, the provider makes no call to AWS so `plan` works with no account. "Never true when applying." |
+
+A variable without a `default` must be given a value, either by `-var name=value`, by a `-var-file`, or by answering a prompt.
+
+**The module outputs.** An `output` block publishes a value after the configuration is evaluated.
+
+`infra/modules/github-oidc-role/outputs.tf`:
+
+```hcl
+output "role_arn" {
+  description = "Set this as the repository variable AWS_DEPLOY_ROLE_ARN."
+  value       = aws_iam_role.deploy.arn
+}
+
+output "subject" {
+  description = "The only OIDC subject the role trusts."
+  value       = local.subject
+}
+```
+
+`role_arn` is the address of the role (an ARN: a unique name for an AWS thing). `subject` is the text `repo:<repository>:environment:<environment>` that the trust policy requires.
+
+`infra/modules/release-bucket/outputs.tf` publishes the bucket's name and ARN (`bucket_name`, `bucket_arn`), which the demo environment passes to the role module. `infra/environments/demo/outputs.tf` re-publishes four values for people and scripts: `deploy_role_arn` (becomes the repository variable `AWS_DEPLOY_ROLE_ARN`), `deploy_bucket` (`DEPLOY_BUCKET`), `trusted_subject` (so you can read what the role accepts), and `region` (`AWS_REGION`). `scripts/set-variables.sh` reads three of them with `terraform output -raw`.
+
+**The release-bucket inputs, `infra/modules/release-bucket/variables.tf`.** `bucket_name` has a validation: `can(regex("^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$", var.bucket_name))`, which means 3 to 63 characters, lower-case letters, digits, dots or hyphens, starting and ending with a letter or digit (S3's naming rules). `force_destroy` (bool, default `false`) allows deleting a bucket that still contains files. `noncurrent_version_days` (number, default `30`) sets how long old versions are kept. `tags` (a `map(string)`, default `{}`) are labels put on the bucket.
+
+**The role module's inputs, `infra/modules/github-oidc-role/variables.tf`.** `github_repository` (validated as `OWNER/NAME` with no wildcard); `environment` (default `production`, validated without wildcard); `aws_account_id` (exactly 12 digits); `role_name` (default `github-actions-deploy`); `bucket_arn` (validated as the ARN of one bucket, with no path); `create_oidc_provider` (default `true`); `max_session_seconds` (default 3600, the shortest AWS allows); `tags` (default `{}`).
+
+**The three `versions.tf` files** are identical: Terraform 1.9 or newer, and the AWS provider `~> 6.0`.
+
+**The `.terraform.lock.hcl` files** (one per directory that is initialised: the demo environment and the two modules). Each records the provider chosen at `terraform init`:
+
+```hcl
+provider "registry.terraform.io/hashicorp/aws" {
+  version     = "6.70.0"
+  constraints = "~> 6.0"
+  hashes = [
+    "h1:...",
+    "zh:...",
+  ]
+}
+```
+
+`version` is the exact release used. `constraints` repeats the allowed range from `versions.tf`. `hashes` are checksums of the provider's files; `zh:` entries are checksums of the downloadable archives and `h1:` is a checksum of the unpacked contents. Terraform refuses a plugin whose checksum does not match. The file is written by `terraform init`; do not edit it by hand.
+
+**The `.tfvars` files.** `infra/environments/demo/offline.tfvars` supplies placeholder values for the offline plan: `offline = true`, a fake account id (`123456789012`), the repository `owner/vulnerable-demo`, and a bucket name. `infra/environments/demo/demo.tfvars.example` is a template for real use: copy it to `demo.tfvars` (which `.gitignore` excludes), fill in your own account id, repository and a unique bucket name, and set `create_oidc_provider = false` if the account already has the GitHub provider.
+
+**The READMEs** inside `infra/` repeat these steps for people who open only that folder.
+
+### The commands in `make infra-check` and `make plan`
+
+| Command | What it does |
+| --- | --- |
+| `terraform fmt -check -recursive infra` | Reports any `.tf` file that is not in the canonical layout; `-recursive` includes sub-folders. |
+| `terraform -chdir=DIR init -backend=false -input=false` | Downloads the provider into `DIR` (or links it from the plugin cache); `-backend=false` skips setting up a place to keep state; `-input=false` never asks questions. |
+| `terraform -chdir=infra/modules/github-oidc-role test` | Runs `tests/trust.tftest.hcl`. |
+| `terraform -chdir=DIR validate` | Checks syntax and references without any cloud call. |
+| `terraform -chdir=infra/environments/demo plan -var-file=offline.tfvars -input=false -out=plan.bin` | Computes the changes using the placeholder values; `-out` saves the plan to a file. |
+| `terraform -chdir=... show -json plan.bin` | Prints the saved plan as JSON, which `pipeline/check-trust-cli.ts` reads. |
+
+`TF_PLUGIN_CACHE_DIR` (set in the Makefile to `~/.terraform.d/plugin-cache`) is a folder where Terraform keeps one copy of each downloaded provider and links to it, instead of copying the large AWS provider into every directory.
+
 ## Try it yourself
 
 1. `terraform version` shows the version (this repository was checked with 1.17.0).

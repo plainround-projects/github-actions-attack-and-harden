@@ -101,6 +101,31 @@ clean: down
 
 `down` lists container ids (`-q`, all states `-a`) made from this project's image only and removes them. It filters by image so it cannot touch another project's containers.
 
+### Every target, in one table
+
+`make NAME` runs the target `NAME`. Targets marked "needs Docker" are the only ones that start containers.
+
+| Target | Prerequisites | What its recipe runs | Why |
+| --- | --- | --- | --- |
+| `help` | none | the `grep`/`sed`/`sort` line shown above | list targets |
+| `$(STAMP)` (`node_modules/.installed`) | `package-lock.json` | `npm ci --ignore-scripts`, then `touch` the marker | install only when the lock file changed |
+| `install` | the marker | nothing (the prerequisite does the work) | a friendly name |
+| `up` | `install` | `mkdir -p $(TF_PLUGIN_CACHE_DIR)` and `docker build -q -t $(ACT_IMAGE) ci/act-runner` (needs Docker) | install and build the image `act` uses |
+| `run` | `$(DEPS)` | `scripts/lab.sh` (needs Docker) | the attacks and their fixes, checked |
+| `attack-scan` | `$(DEPS)` | both linters on the lab workflows, failures ignored | show what the linters find |
+| `test` | `$(DEPS)` | `npx vitest run --coverage` | the 90 tests with coverage |
+| `lint` | `$(DEPS)` | `npx eslint .`, `npx prettier --check .`, `npx tsc -p tsconfig.json --noEmit`, `actionlint`, `npx tsx pipeline/harden-lint-cli.ts` | all static checks; the first failing line stops the target |
+| `format` | `$(DEPS)` | `npx prettier --write .` | apply the formatting |
+| `infra-check` | `$(DEPS)` | the Terraform commands listed in `terraform.md`, then `check-trust` | check the cloud definitions offline |
+| `plan` | none | `terraform init -backend=false -input=false` then `terraform plan -var-file=offline.tfvars -input=false -out=plan.bin` in the demo folder | the offline plan |
+| `check-trust` | `plan` | `terraform show -json plan.bin > plan.json`, then `npx tsx pipeline/check-trust-cli.ts plan.json owner/vulnerable-demo production` | eight sample logins against the planned policy |
+| `audit` | `$(DEPS)` | `npm audit --audit-level=high` | known-flaw check on locked packages |
+| `check` | `lint test infra-check` | nothing of its own | "everything that needs no Docker and no cloud account" |
+| `down` | none | removes leftover containers of this project's image | clean up after `act` |
+| `clean` | `down` | `rm -rf node_modules dist build coverage` and the plan and `.terraform` folders | remove generated files |
+
+`npx NAME` runs a program installed in `node_modules/.bin`. A `>` after a command sends its output into a file; `$(TF_ENV)/plan.json` is the path `infra/environments/demo/plan.json`. `-chdir=DIR` is explained in the Terraform note.
+
 ## Try it yourself
 
 1. `make help` prints each target with its description.

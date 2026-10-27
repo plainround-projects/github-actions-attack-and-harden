@@ -141,6 +141,114 @@ jq -n --argjson pr "$PR_NUMBER" --arg sha "$HEAD_SHA" --arg conclusion "$JOB_STA
 
 Appending a directory to the file `$GITHUB_PATH` adds it to the `PATH` of later steps. Every variable is quoted. Values from the event reach the script only as environment variables (`BUCKET`, `PR_NUMBER`, `HEAD_SHA`, `JOB_STATUS`), never as `${{ }}` text.
 
+### `scripts/lab.sh`, the rest of it
+
+The top of the script (after the header explained above):
+
+```bash
+root="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$root"
+logs="$root/build/lab"
+rm -rf "$logs"
+mkdir -p "$logs"
+fake_secret="DEPLOY_TOKEN=demo-not-a-real-secret"
+pinned_upload="$(grep -o 'actions/upload-artifact@[0-9a-f]\{40\}' .github/workflows/pr-build.yml | head -1)"
+upload_stub="$root/exploit/stubs/upload-artifact"
+checkout_stub="$root/exploit/stubs/fork-checkout"
+act_flags=(--concurrent-jobs 1)
+```
+
+- `$(...)` runs a command and uses its output as text. `$0` is the script's own path. `dirname` removes the file name; `cd` moves there; `&&` runs the next command only if the previous one succeeded; `pwd` prints the full path. So `root` is the repository's absolute path wherever the script is started from. `cd "$root"` makes it the current folder.
+- `rm -rf "$logs"` deletes the previous run's folder (`-r` folders, `-f` no complaints if missing); `mkdir -p` creates it (and any parents).
+- `fake_secret` is a made-up secret with a name that says so.
+- `grep -o PATTERN FILE` prints only the matching part; the pattern is `actions/upload-artifact@` followed by exactly 40 hexadecimal characters (`\{40\}`). `head -1` keeps the first line. The result is the exact pinned reference the hardened workflow uses, so it can be swapped for a stand-in later.
+- `act_flags=(--concurrent-jobs 1)` is an array: a list of words kept separate (see `act.md` for the flag).
+
+The four blocks, each announced with `echo "== ..."`:
+
+```bash
+echo "== attack 1: script injection through an issue title (vulnerable greet.yml)"
+run "$logs/attack1.log" issues -C exploit/vulnerable -W .github/workflows/greet.yml -e "$root/exploit/events/issue-injection.json"
+grep -E "\| (New issue|INJECTED)" "$logs/attack1.log" | sed 's/^/   /'
+expect "$logs/attack1.log" '\| INJECTED-COMMAND-RAN$' "the injected command ran as a line of its own"
+```
+
+`run LOG ARGS...` runs `act` (the function was explained above). `grep -E` with `\|` searches for the literal text `| New issue` or `| INJECTED` (act prefixes the output of each step line with `| `); `|` between commands is a **pipe**: the output of `grep` becomes the input of `sed`, and `sed 's/^/   /'` adds three spaces at the start of each line (`s/pattern/replacement/`; `^` is "start of line"). Then `expect` asserts that a line ends in exactly `| INJECTED-COMMAND-RAN` (`$` is "end of line").
+
+```bash
+echo "== fix 1: the same title through an environment variable (hardened greet.yml)"
+run "$logs/fix1.log" issues -W .github/workflows/greet.yml -e "$root/exploit/events/issue-injection.json"
+grep -E "\| New issue" "$logs/fix1.log" | sed 's/^/   /'
+expect_none "$logs/fix1.log" '\| INJECTED-COMMAND-RAN$' "the title printed as text and no command ran"
+```
+
+The same event on the hardened workflow. `expect_none` (the opposite of `expect`) passes only if no line matches.
+
+```bash
+echo "== attack 2: ..."
+mkdir -p "$logs/fork-vulnerable"
+cp -R exploit/vulnerable/. "$logs/fork-vulnerable/"
+node exploit/fork/apply-fork-change.mjs "$logs/fork-vulnerable/package.json"
+run "$logs/attack2.log" pull_request_target -b -C "$logs/fork-vulnerable" -W .github/workflows/pr-build.yml \
+  -e "$root/exploit/events/pull-request-from-fork.json" --local-repository "actions/checkout@v4=$checkout_stub" -s "$fake_secret"
+grep -E "\| FORK CODE RAN" "$logs/attack2.log" | sed 's/^/   /'
+expect "$logs/attack2.log" '\| FORK CODE RAN: event=pull_request_target deploy-token-in-environment=true$' \
+  "the fork's build script ran with DEPLOY_TOKEN in its environment"
+```
+
+`cp -R SRC/. DEST/` copies a folder's contents, including hidden files like `.github`. `node ...apply-fork-change.mjs` rewrites the copy's `package.json` so its `build` script is the "fork's change" (see `node.md`). The `act` command is explained in `act.md`. A line ending in `\` continues on the next line.
+
+```bash
+echo "== fix 2: ..."
+mkdir -p "$logs/fork-hardened"
+git ls-files -z | xargs -0 -I{} rsync -aR "{}" "$logs/fork-hardened/"
+node exploit/fork/apply-fork-change.mjs "$logs/fork-hardened/package.json"
+run "$logs/fix2.log" pull_request -C "$logs/fork-hardened" -W .github/workflows/pr-build.yml \
+  -e "$root/exploit/events/pull-request-from-fork.json" --local-repository "$pinned_upload=$upload_stub"
+...
+expect "$logs/fix2.log" '\| FORK CODE RAN: event=pull_request deploy-token-in-environment=false$' ...
+expect "$logs/fix2.log" '\| artifact build-result: result.json' "the result file was recorded for pr-report"
+echo "lab: every attack worked on the vulnerable workflow and every fix held"
+```
+
+`git ls-files -z` lists tracked files separated by NUL characters; `xargs -0 -I{} CMD` runs `CMD` once per name with `{}` replaced by it; `rsync -aR` copies a file keeping its folder path (`-a` preserves permissions and times, `-R` keeps the relative path). Two expectations for the fix: the fork's code still runs, but with no `DEPLOY_TOKEN` in its environment, and the result file is recorded. The final `echo` is reached only if every `expect` passed, because `set -e` and `exit 1` stop the script at the first failure.
+
+### `scripts/github-settings.sh`, steps 1 to 5
+
+Step 4 chooses the reviewer's id:
+
+```bash
+if [[ "${DRY_RUN:-0}" == "1" ]]; then
+  reviewer_id="<id of $reviewer>"
+else
+  reviewer_id="$(gh api "users/$reviewer" --jq .id)"
+fi
+```
+
+In a dry run there is no network call; otherwise `gh api users/<login> --jq .id` returns the account's number. The calls themselves are explained in `gh-cli.md`.
+
+### `scripts/set-variables.sh`
+
+```bash
+env_dir="$(cd "$(dirname "$0")/.." && pwd)/infra/environments/demo"
+
+set_variable() {
+  local name="$1" output="$2" value
+  if [[ "${DRY_RUN:-0}" == "1" ]]; then
+    echo "gh variable set $name --repo $repo --body <terraform output $output>"
+  else
+    value="$(terraform -chdir="$env_dir" output -raw "$output")"
+    gh variable set "$name" --repo "$repo" --body "$value"
+  fi
+}
+
+set_variable AWS_DEPLOY_ROLE_ARN deploy_role_arn
+set_variable AWS_REGION region
+set_variable DEPLOY_BUCKET deploy_bucket
+```
+
+`local name="$1" output="$2" value` declares three variables private to the function and assigns the first two from the function's arguments (`$1`, `$2`). Calling `set_variable AWS_REGION region` publishes the Terraform output `region` as the repository variable `AWS_REGION`.
+
 ## Try it yourself
 
 1. `bash --version | head -1` shows your Bash version.

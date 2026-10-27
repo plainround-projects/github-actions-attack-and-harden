@@ -123,6 +123,47 @@ bucket_name       = "example-attack-and-harden-releases"
 
 `terraform fmt` aligns the `=` signs in a block, which is why you see the columns lined up.
 
+### More HCL seen in `release-bucket/main.tf`
+
+```hcl
+resource "aws_s3_bucket_ownership_controls" "this" {
+  bucket = aws_s3_bucket.this.id
+
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
+```
+
+A block can contain **nested blocks** (`rule { ... }`) as well as arguments. `aws_s3_bucket.this.id` refers to the bucket created above; naming every resource in a module `this` is a common habit when a module has one of each kind. Using that reference makes Terraform create the bucket first.
+
+```hcl
+resource "aws_s3_bucket_lifecycle_configuration" "this" {
+  bucket = aws_s3_bucket.this.id
+
+  rule {
+    id     = "expire-old-versions"
+    status = "Enabled"
+
+    filter {}
+
+    noncurrent_version_expiration {
+      noncurrent_days = var.noncurrent_version_days
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+
+  depends_on = [aws_s3_bucket_versioning.this]
+}
+```
+
+`filter {}` is an empty nested block: "apply to all objects". `depends_on` lists resources that must be created first although nothing here refers to them. In `demo/main.tf`, `provider "aws" { default_tags { tags = local.tags } }` shows a nested block inside a provider, and `module "release_bucket" { source = "..." }` shows a block whose arguments (`bucket_name = ...`) become the module's variables. In `versions.tf`, `terraform { required_providers { aws = { source = "hashicorp/aws", version = "~> 6.0" } } }` shows nested blocks and an object value together.
+
+In the test file, `mock_provider "aws" {}` is a block with a label and an empty body; `variables { ... }` sets inputs for all runs; `run "name" { command = plan ... }` defines one test; `assert { condition = ... error_message = "..." }` is a check; `expect_failures = [var.github_repository]` is a list of things that must fail.
+
 ## Try it yourself
 
 1. `terraform fmt -check -recursive infra` prints nothing and exits 0.
