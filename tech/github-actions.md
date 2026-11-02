@@ -116,7 +116,7 @@ The cure used here is to split the job in two. `pr-build.yml` runs under `pull_r
 2. A `permissions:` block at the top of the workflow overrides that default.
 3. A `permissions:` block on a job overrides the top one for that job.
 
-If a workflow has no `permissions:` at all, the token uses the repository default, which in many repositories is read and write. That is **attack 3**: a labeling workflow that needs almost nothing carries a token that can change the repository. `permissions: {}` means "no scopes at all". A **scope** is one kind of permission: `contents` (the files), `pull-requests`, `issues`, `actions`, `id-token`, and so on, each `read`, `write` or `none`.
+If a workflow has no `permissions:` at all, the token uses the repository default, which in many repositories is read and write. That is **attack 3**: a labeling workflow that needs almost nothing carries a token that can change the repository. `permissions: {}` means "no scopes at all". A **scope** is one kind of permission: `contents` (the files), `pull-requests` (pull requests and their comments), `actions` (workflow runs and artifacts) and `id-token` (the OIDC login token) are the four this repository uses; GitHub also has others, for example `issues`, `packages` and `checks`. Each scope is set to `read`, `write` or `none`.
 
 ### Environments, approvals and OIDC
 

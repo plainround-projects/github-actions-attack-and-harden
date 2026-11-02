@@ -34,7 +34,7 @@ Terms:
 
 ## Why this repository uses it
 
-Two reasons. First, ordinary code hygiene. Second, and more interesting, the layer rules of the application are written as lint rules: the domain code may not import from infrastructure, application code may not import from interfaces, and so on. A wrong import fails the build instead of waiting for a reviewer to notice.
+Two reasons. First, ordinary code hygiene. Second, and more interesting, the layer rules of the application are written as lint rules: the domain code may not import from infrastructure, application code may not import from infrastructure, interfaces or the pipeline tools, infrastructure code may not import from interfaces or the pipeline tools, the command-line layer may not import from the pipeline tools, and the pipeline tools may not import from `src`. A wrong import fails the build instead of waiting for a reviewer to notice.
 
 ## Where it appears
 
