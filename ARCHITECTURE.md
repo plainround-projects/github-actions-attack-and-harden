@@ -25,6 +25,8 @@ The application follows the usual layering and ESLint's `no-restricted-imports` 
 
 ## Data flow
 
+Drawn versions of this figure and of the walk-through: [the architecture](docs/diagrams/architecture.svg) and [one run](docs/diagrams/flow.svg).
+
 ```mermaid
 flowchart LR
     atk["Outside contributor<br/>(second account)"]

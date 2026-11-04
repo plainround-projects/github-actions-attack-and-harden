@@ -12,6 +12,24 @@ A repository that was deliberately vulnerable, hardened: shell injection through
 
 This repository is the **hardened** version. The lesson's three vulnerable workflows are in [`exploit/vulnerable/.github/workflows/`](exploit/vulnerable/.github/workflows), outside `.github/`, so they are lab files that never run on GitHub by themselves. Use them only in repositories you own, with a second account you own and a throwaway cloud account with a budget.
 
+## Architecture
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/architecture-dark.svg">
+  <img alt="An outside contributor sends an issue title, a fork pull request and a pull request, drawn in amber, to the hardened repository. Issue greeter, Fork build and Labeler hold no secret or no write token; pr-report reads the build-result artifact; Deploy job waits at the production environment and trades an OIDC token with the Cloud role for credentials to write releases/ in the bucket." src="docs/diagrams/architecture.svg">
+</picture>
+
+Notice that the three attacker inputs never reach a workflow that holds both untrusted code and a secret; only Deploy job reaches the Cloud role, and only after the production environment approves.
+
+## How one run flows
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/flow-dark.svg">
+  <img alt="One fork pull request is built, labeled and reported, then one deploy trades an OIDC token for an hour of credentials and syncs dist to releases/. The amber row shows the Cloud role refusing a job whose sub differs." src="docs/diagrams/flow.svg">
+</picture>
+
+The run builds a stranger's fork without secrets, reports on it from the default branch, then deploys with OIDC; the amber row is the refusal when another branch or fork presents a different sub.
+
 ## Prerequisites
 
 | Tool | Version | Used for |
